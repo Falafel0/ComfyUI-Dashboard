@@ -150,7 +150,7 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
                             </small>
                             
                             <div id="sce-connections-list" style="max-height:400px; overflow-y:auto;">
-                                ${renderConnectionsList(config)}
+                                ${renderConnectionsList(null)}
                             </div>
                         </div>
                     </div>
@@ -160,7 +160,7 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
                         <div class="a11-settings-block">
                             <div class="a11-settings-title">Container Settings</div>
                             <div id="sce-dynamic-settings">
-                                ${renderDynamicSettings(config)}
+                                ${renderDynamicSettings(null)}
                             </div>
                         </div>
                     </div>
@@ -187,12 +187,24 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
         };
     });
     
-    // Update description when container type changes
+    // Update description when container type changes AND refresh settings
     const typeSelect = modal.querySelector('#sce-container-type');
     const descEl = modal.querySelector('.sce-type-desc');
+    const dynamicSettingsDiv = modal.querySelector('#sce-dynamic-settings');
+    
     typeSelect.onchange = () => {
         const selectedType = containerTypes.find(ct => ct.id === typeSelect.value);
         descEl.textContent = selectedType?.description || '';
+        
+        // Update currentEditingConfig specialType
+        if (currentEditingConfig) {
+            currentEditingConfig.specialType = typeSelect.value;
+        }
+        
+        // Refresh dynamic settings for the new type
+        if (dynamicSettingsDiv) {
+            dynamicSettingsDiv.innerHTML = renderDynamicSettings(null);
+        }
     };
     // Trigger initial description update
     typeSelect.onchange();
@@ -229,7 +241,7 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
         if (!vwItem) return;
         
         const vwId = vwItem.dataset.vwId;
-        const vw = config?.virtualWidgets?.find(w => w.id === vwId);
+        const vw = currentEditingConfig?.virtualWidgets?.find(w => w.id === vwId);
         
         if (e.target.classList.contains('vw-remove-btn')) {
             removeVirtualWidget(config, vwId, modal);
@@ -245,14 +257,17 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
  * Render connections list HTML
  */
 function renderConnectionsList(config) {
-    if (!config?.virtualWidgets || config.virtualWidgets.length === 0) {
+    // Use currentEditingConfig if config not provided
+    const dataConfig = config || currentEditingConfig;
+    
+    if (!dataConfig?.virtualWidgets || dataConfig.virtualWidgets.length === 0) {
         return '<div style="color:var(--a11-desc); padding:20px; text-align:center;">No virtual widgets to connect.</div>';
     }
     
     const { app } = window;
     let html = '';
     
-    config.virtualWidgets.forEach(vw => {
+    dataConfig.virtualWidgets.forEach(vw => {
         const isConnected = !!vw.connection;
         let nodeOptions = '<option value="">-- Select Node --</option>';
         
@@ -315,53 +330,64 @@ function renderConnectionsList(config) {
  * Render dynamic settings based on container type
  */
 function renderDynamicSettings(config) {
-    const specialType = config?.specialType || SPECIAL_CONTAINER_TYPES.DASHBOARD;
+    // Use currentEditingConfig if config not provided, or get type from modal
+    let specialType;
+    if (config?.specialType) {
+        specialType = config.specialType;
+    } else if (currentEditingConfig?.specialType) {
+        specialType = currentEditingConfig.specialType;
+    } else {
+        // Try to get from modal if it exists
+        const modalTypeSelect = document.querySelector('#sce-container-type');
+        specialType = modalTypeSelect?.value || SPECIAL_CONTAINER_TYPES.DASHBOARD;
+    }
+    
     let settingsHtml = '';
     
     switch (specialType) {
         case SPECIAL_CONTAINER_TYPES.DASHBOARD:
             settingsHtml = `
-                <div class="a11-setting-row"><label>Refresh Rate (ms)</label><input type="number" id="sce-refresh-rate" value="${config?.settings?.refreshRate || 1000}" min="100" step="100"></div>
+                <div class="a11-setting-row"><label>Refresh Rate (ms)</label><input type="number" id="sce-refresh-rate" value="${config?.settings?.refreshRate || currentEditingConfig?.settings?.refreshRate || 1000}" min="100" step="100"></div>
                 <div class="a11-setting-row"><label>Layout Mode</label>
                     <select id="sce-dashboard-layout" style="width:100%">
-                        <option value="grid" ${config?.settings?.layout !== 'flex' ? 'selected' : ''}>Grid</option>
-                        <option value="flex" ${config?.settings?.layout === 'flex' ? 'selected' : ''}>Flex</option>
+                        <option value="grid" ${config?.settings?.layout !== 'flex' && currentEditingConfig?.settings?.layout !== 'flex' ? 'selected' : ''}>Grid</option>
+                        <option value="flex" ${config?.settings?.layout === 'flex' || currentEditingConfig?.settings?.layout === 'flex' ? 'selected' : ''}>Flex</option>
                     </select>
                 </div>
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-header" ${config?.settings?.showHeader !== false ? 'checked' : ''}> Show Header</label></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-header" ${config?.settings?.showHeader !== false && currentEditingConfig?.settings?.showHeader !== false ? 'checked' : ''}> Show Header</label></div>
             `;
             break;
         case SPECIAL_CONTAINER_TYPES.CONTROL_PANEL:
             settingsHtml = `
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-auto-apply" ${config?.settings?.autoApply !== false ? 'checked' : ''}> Auto-Apply Changes</label></div>
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-confirm-changes" ${config?.settings?.confirmChanges ? 'checked' : ''}> Confirm Changes</label></div>
-                <div class="a11-setting-row"><label>Preset Slots</label><input type="number" id="sce-preset-slots" value="${config?.settings?.presetSlots || 5}" min="1" max="20"></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-auto-apply" ${config?.settings?.autoApply !== false && currentEditingConfig?.settings?.autoApply !== false ? 'checked' : ''}> Auto-Apply Changes</label></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-confirm-changes" ${config?.settings?.confirmChanges || currentEditingConfig?.settings?.confirmChanges ? 'checked' : ''}> Confirm Changes</label></div>
+                <div class="a11-setting-row"><label>Preset Slots</label><input type="number" id="sce-preset-slots" value="${config?.settings?.presetSlots || currentEditingConfig?.settings?.presetSlots || 5}" min="1" max="20"></div>
             `;
             break;
         case SPECIAL_CONTAINER_TYPES.MONITOR:
             settingsHtml = `
-                <div class="a11-setting-row"><label>Update Interval (ms)</label><input type="number" id="sce-update-interval" value="${config?.settings?.updateInterval || 500}" min="100" step="100"></div>
-                <div class="a11-setting-row"><label>History Size</label><input type="number" id="sce-history-size" value="${config?.settings?.historySize || 100}" min="10" max="1000"></div>
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-graph" ${config?.settings?.showGraph !== false ? 'checked' : ''}> Show Graph</label></div>
+                <div class="a11-setting-row"><label>Update Interval (ms)</label><input type="number" id="sce-update-interval" value="${config?.settings?.updateInterval || currentEditingConfig?.settings?.updateInterval || 500}" min="100" step="100"></div>
+                <div class="a11-setting-row"><label>History Size</label><input type="number" id="sce-history-size" value="${config?.settings?.historySize || currentEditingConfig?.settings?.historySize || 100}" min="10" max="1000"></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-graph" ${config?.settings?.showGraph !== false && currentEditingConfig?.settings?.showGraph !== false ? 'checked' : ''}> Show Graph</label></div>
             `;
             break;
         case SPECIAL_CONTAINER_TYPES.FORM:
             settingsHtml = `
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-validate-submit" ${config?.settings?.validateOnSubmit !== false ? 'checked' : ''}> Validate on Submit</label></div>
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-reset" ${config?.settings?.showResetButton !== false ? 'checked' : ''}> Show Reset Button</label></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-validate-submit" ${config?.settings?.validateOnSubmit !== false && currentEditingConfig?.settings?.validateOnSubmit !== false ? 'checked' : ''}> Validate on Submit</label></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-reset" ${config?.settings?.showResetButton !== false && currentEditingConfig?.settings?.showResetButton !== false ? 'checked' : ''}> Show Reset Button</label></div>
                 <div class="a11-setting-row"><label>Submit Action</label>
                     <select id="sce-submit-action" style="width:100%">
-                        <option value="apply" ${config?.settings?.submitAction === 'apply' ? 'selected' : ''}>Apply Values</option>
-                        <option value="execute" ${config?.settings?.submitAction === 'execute' ? 'selected' : ''}>Execute Workflow</option>
+                        <option value="apply" ${config?.settings?.submitAction === 'apply' || currentEditingConfig?.settings?.submitAction === 'apply' ? 'selected' : ''}>Apply Values</option>
+                        <option value="execute" ${config?.settings?.submitAction === 'execute' || currentEditingConfig?.settings?.submitAction === 'execute' ? 'selected' : ''}>Execute Workflow</option>
                     </select>
                 </div>
             `;
             break;
         case SPECIAL_CONTAINER_TYPES.GALLERY:
             settingsHtml = `
-                <div class="a11-setting-row"><label>Thumbnail Size (px)</label><input type="number" id="sce-thumb-size" value="${config?.settings?.thumbnailSize || 128}" min="64" max="512" step="32"></div>
-                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-captions" ${config?.settings?.showCaptions !== false ? 'checked' : ''}> Show Captions</label></div>
-                <div class="a11-setting-row"><label>Columns</label><input type="number" id="sce-gallery-cols" value="${config?.settings?.columns || 4}" min="1" max="12"></div>
+                <div class="a11-setting-row"><label>Thumbnail Size (px)</label><input type="number" id="sce-thumb-size" value="${config?.settings?.thumbnailSize || currentEditingConfig?.settings?.thumbnailSize || 128}" min="64" max="512" step="32"></div>
+                <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-captions" ${config?.settings?.showCaptions !== false && currentEditingConfig?.settings?.showCaptions !== false ? 'checked' : ''}> Show Captions</label></div>
+                <div class="a11-setting-row"><label>Columns</label><input type="number" id="sce-gallery-cols" value="${config?.settings?.columns || currentEditingConfig?.settings?.columns || 4}" min="1" max="12"></div>
             `;
             break;
         default:
@@ -375,23 +401,29 @@ function renderDynamicSettings(config) {
  * Add a virtual widget to the list
  */
 function addVirtualWidgetToList(config, widgetType, modal) {
-    if (!config) {
-        config = { virtualWidgets: [] };
-        currentEditingConfig = config;
+    // Ensure we're working with the current editing config
+    if (!currentEditingConfig) {
+        currentEditingConfig = { 
+            specialType: modal.querySelector('#sce-container-type').value,
+            title: modal.querySelector('#sce-title').value,
+            virtualWidgets: [] 
+        };
     }
     
-    if (!config.virtualWidgets) config.virtualWidgets = [];
+    if (!currentEditingConfig.virtualWidgets) {
+        currentEditingConfig.virtualWidgets = [];
+    }
     
     const newWidget = createVirtualWidget(widgetType);
-    config.virtualWidgets.push(newWidget);
+    currentEditingConfig.virtualWidgets.push(newWidget);
     
     // Refresh the widget list
-    refreshVirtualWidgetsList(config, modal);
+    refreshVirtualWidgetsList(currentEditingConfig, modal);
     
     // Also refresh connections tab
     const connectionsList = modal.querySelector('#sce-connections-list');
     if (connectionsList) {
-        connectionsList.innerHTML = renderConnectionsList(config);
+        connectionsList.innerHTML = renderConnectionsList(currentEditingConfig);
     }
 }
 
@@ -399,17 +431,17 @@ function addVirtualWidgetToList(config, widgetType, modal) {
  * Remove a virtual widget from the list
  */
 function removeVirtualWidget(config, widgetId, modal) {
-    if (!config?.virtualWidgets) return;
+    if (!currentEditingConfig?.virtualWidgets) return;
     
-    const idx = config.virtualWidgets.findIndex(w => w.id === widgetId);
+    const idx = currentEditingConfig.virtualWidgets.findIndex(w => w.id === widgetId);
     if (idx >= 0) {
-        config.virtualWidgets.splice(idx, 1);
-        refreshVirtualWidgetsList(config, modal);
+        currentEditingConfig.virtualWidgets.splice(idx, 1);
+        refreshVirtualWidgetsList(currentEditingConfig, modal);
         
         // Refresh connections tab
         const connectionsList = modal.querySelector('#sce-connections-list');
         if (connectionsList) {
-            connectionsList.innerHTML = renderConnectionsList(config);
+            connectionsList.innerHTML = renderConnectionsList(currentEditingConfig);
         }
     }
 }
@@ -421,13 +453,16 @@ function refreshVirtualWidgetsList(config, modal) {
     const vwList = modal.querySelector('.vw-list');
     if (!vwList) return;
     
-    if (!config?.virtualWidgets || config.virtualWidgets.length === 0) {
+    // Use currentEditingConfig if config not provided
+    const dataConfig = config || currentEditingConfig;
+    
+    if (!dataConfig?.virtualWidgets || dataConfig.virtualWidgets.length === 0) {
         vwList.innerHTML = '<div class="vw-empty">No virtual widgets yet. Add one using the panel below.</div>';
         return;
     }
     
     let html = '';
-    config.virtualWidgets.forEach(vw => {
+    dataConfig.virtualWidgets.forEach(vw => {
         const isConnected = !!vw.connection;
         const connectionInfo = isConnected 
             ? `<span class="vw-connection-badge">🔗 Connected to Node #${vw.connection.nodeId}</span>` 

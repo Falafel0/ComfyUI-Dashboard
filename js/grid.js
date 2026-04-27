@@ -983,7 +983,8 @@ export function renderGridItemContent(domElement, config) {
         domElement.appendChild(body);
     }
     body.className = `gw-body layout-${activeLayout} gw-density-${config.widgetDensity}`;
-    body.innerHTML = "";
+    // Don't clear innerHTML - use incremental rendering instead to prevent animation twitching
+    // Only remove widgets that are no longer in the config (handled later in the render logic)
     if (config.padding !== undefined && config.padding !== "") body.style.padding = config.padding + "px";
     else body.style.padding = "";
 

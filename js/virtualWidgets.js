@@ -4,7 +4,7 @@
  */
 
 import { state, broadcastWidgetUpdate } from "./state.js";
-import { SPECIAL_WIDGET_TYPES } from "./specialContainers.js";
+import { SPECIAL_WIDGET_TYPES, virtualWidgetStates } from "./specialContainers.js";
 
 /**
  * Create DOM element for a virtual widget
@@ -24,6 +24,11 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     wrapper.dataset.virtualWidgetId = virtualWidget.id;
     wrapper.dataset.containerId = containerId;
     wrapper.dataset.widgetType = virtualWidget.type;
+
+    // Restore saved state if exists
+    if (virtualWidgetStates.has(virtualWidget.id)) {
+        virtualWidget.value = virtualWidgetStates.get(virtualWidget.id);
+    }
 
     // Add updateValue method for external updates
     wrapper.updateValue = (newValue) => {
@@ -494,15 +499,23 @@ function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
 
     const emitChange = () => {
         // Update virtual widget value
+        let newValue;
         if (input.type === 'checkbox') {
-            virtualWidget.value = input.checked;
+            newValue = input.checked;
+            virtualWidget.value = newValue;
         } else if (input.type === 'number' || input.type === 'range') {
-            virtualWidget.value = parseFloat(input.value);
+            newValue = parseFloat(input.value);
+            virtualWidget.value = newValue;
         } else if (input.tagName === 'SELECT') {
-            virtualWidget.value = input.value;
+            newValue = input.value;
+            virtualWidget.value = newValue;
         } else if (input.tagName === 'TEXTAREA' || input.type === 'text') {
-            virtualWidget.value = input.value;
+            newValue = input.value;
+            virtualWidget.value = newValue;
         }
+
+        // Save to global state storage
+        virtualWidgetStates.set(virtualWidget.id, virtualWidget.value);
 
         // Sync with connected real widget if exists
         if (virtualWidget.connection) {
@@ -571,13 +584,19 @@ export function updateVirtualWidgetValue(wrapper, newValue) {
     // Handle image widgets specially
     if (wrapper.classList.contains('vw-image-container') && wrapper.updateImageSource) {
         const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
-        if (virtualWidgetId && window.specialContainersState) {
-            const vw = window.specialContainersState.find(v => v.id === virtualWidgetId);
-            if (vw) {
-                vw.value = newValue;
-                wrapper.updateImageSource();
-                return;
+        if (virtualWidgetId) {
+            // Save to global state
+            virtualWidgetStates.set(virtualWidgetId, newValue);
+            
+            // Try to find in window.specialContainersState for backward compatibility
+            if (window.specialContainersState && Array.isArray(window.specialContainersState)) {
+                const vw = window.specialContainersState.find(v => v.id === virtualWidgetId);
+                if (vw) {
+                    vw.value = newValue;
+                }
             }
+            wrapper.updateImageSource();
+            return;
         }
     }
     
@@ -588,6 +607,12 @@ export function updateVirtualWidgetValue(wrapper, newValue) {
         input.checked = !!newValue;
     } else {
         input.value = newValue ?? '';
+    }
+    
+    // Also save to global state for non-image widgets
+    const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
+    if (virtualWidgetId) {
+        virtualWidgetStates.set(virtualWidgetId, newValue);
     }
 }
 

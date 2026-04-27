@@ -917,11 +917,23 @@ export function renderGridItemContent(domElement, config) {
 
     domElement.classList.add(`gw-view-${config.containerView}`);
 
+    // Apply seamless mode override from global settings
+    const isSeamless = state.settings.seamlessMode === true;
+    
     if (config.customBg && config.containerView !== 'glass' && config.containerView !== 'clean') domElement.style.backgroundColor = config.customBg;
     else domElement.style.backgroundColor = '';
     domElement.style.opacity = config.customOpacity || 1.0;
-    if (config.borderCol) domElement.style.borderColor = config.borderCol;
-    if (config.borderRadius !== undefined && config.borderRadius !== "") domElement.style.borderRadius = config.borderRadius + "px";
+    
+    // Only apply border settings if not in seamless mode (global overrides local)
+    if (!isSeamless) {
+        if (config.borderCol) domElement.style.borderColor = config.borderCol;
+        if (config.borderRadius !== undefined && config.borderRadius !== "") domElement.style.borderRadius = config.borderRadius + "px";
+    } else {
+        // In seamless mode, remove borders visually
+        domElement.style.borderColor = 'transparent';
+        domElement.style.borderRadius = '0';
+        domElement.style.boxShadow = 'none';
+    }
 
     if (config.minimalHeader) domElement.classList.add("minimal-header");
     if (config.color) domElement.setAttribute("data-color", config.color);

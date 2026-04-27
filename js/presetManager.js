@@ -14,6 +14,12 @@ export const PRESET_CATEGORIES = {
     CUSTOM: "Custom"
 };
 
+// Container type constants - placeholder for special container support
+export const CONTAINER_TYPES = {
+    STANDARD: 'standard',  // Regular container with default behavior
+    SPECIAL: 'special'     // Special container with autonomous behavior (placeholder for future development)
+};
+
 export const PRESET_SORT_OPTIONS = {
     NAME_ASC: 'name_asc',
     NAME_DESC: 'name_desc',
@@ -190,6 +196,11 @@ export function validateContainerPreset(preset) {
 
     if (preset.category && typeof preset.category !== 'string') {
         errors.push('Category must be a string');
+    }
+
+    // Validate containerType (placeholder for special containers)
+    if (preset.containerType && !Object.values(CONTAINER_TYPES).includes(preset.containerType)) {
+        errors.push(`Invalid containerType: ${preset.containerType}`);
     }
 
     return {
@@ -482,7 +493,8 @@ export function createContainerPreset(name, category, values, metadata = {}) {
     const validation = validateContainerPreset({
         name: sanitizedName,
         category: sanitizedCategory,
-        values
+        values,
+        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD
     });
 
     if (!validation.valid) {
@@ -494,6 +506,7 @@ export function createContainerPreset(name, category, values, metadata = {}) {
         id: generatePresetId(sanitizedName),
         name: sanitizedName,
         category: sanitizedCategory,
+        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD, // Placeholder for special containers
         values: [...values],
         metadata: {
             source: 'manual_create',

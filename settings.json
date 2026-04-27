@@ -30,6 +30,7 @@
     "enableAnimations": true,
     "enableTransitions": true,
     "transitionEasing": "cubic-bezier(0.4, 0, 0.2, 1)",
+    "seamlessMode": false,
     "accentHover": "",
     "accentActive": "",
     "successColor": "#10b981",

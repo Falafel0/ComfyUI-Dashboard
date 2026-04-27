@@ -965,10 +965,21 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     }
     // VIRTUAL_DROPDOWN
     else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
+        const optionsStr = (virtualWidget.config?.options || []).join(', ');
+        const aliasesStr = virtualWidget.config?.aliases ? 
+            (typeof virtualWidget.config.aliases === 'string' ? virtualWidget.config.aliases : JSON.stringify(virtualWidget.config.aliases)) 
+            : '';
+        
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                 <label>Options (comma-separated)</label>
-                <input type="text" id="vw-config-options" value="${(virtualWidget.config?.options || []).join(', ')}" style="width:100%" placeholder="Option1, Option2, Option3">
+                <input type="text" id="vw-config-options" value="${optionsStr}" style="width:100%" placeholder="Option1, Option2, Option3">
+                <small style="opacity:0.7; margin-top:4px;">Used only if Aliases is empty</small>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Aliases (JSON format)</label>
+                <textarea id="vw-config-aliases" rows="5" style="width:100%; font-family:monospace; font-size:12px;" placeholder='{"Display Label": "internal_value", "Speed Low": 10, "Speed High": 100}'>${aliasesStr}</textarea>
+                <small style="opacity:0.7; margin-top:4px;">Format: {"Display Text": internal_value}. Keys are shown to user, values are stored/synced.</small>
             </div>
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
                 <label>Placeholder</label>
@@ -1102,6 +1113,21 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                 .split(',')
                 .map(s => s.trim())
                 .filter(s => s.length > 0);
+            
+            // Parse aliases JSON
+            const aliasesInput = configModal.querySelector('#vw-config-aliases').value.trim();
+            if (aliasesInput) {
+                try {
+                    virtualWidget.config.aliases = JSON.parse(aliasesInput);
+                } catch (e) {
+                    console.error('Invalid aliases JSON', e);
+                    alert('Invalid JSON format for aliases. Aliases will not be saved.');
+                    virtualWidget.config.aliases = {};
+                }
+            } else {
+                virtualWidget.config.aliases = {};
+            }
+            
             virtualWidget.config.placeholder = configModal.querySelector('#vw-config-placeholder').value;
             virtualWidget.config.allowCustom = configModal.querySelector('#vw-config-custom').value === 'true';
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {

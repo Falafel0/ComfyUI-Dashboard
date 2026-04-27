@@ -1822,7 +1822,7 @@ input:checked + .a11-switch-slider:before {
     gap: 8px; 
 }
 
-/* Modal Transitions & Stability - Prevent Twitching */
+/* Modal Transitions & Stability - Prevent Twitching (DISABLED ANIMATIONS) */
 .a11-modal { 
     position: fixed; 
     top: 0; 
@@ -1835,15 +1835,16 @@ input:checked + .a11-switch-slider:before {
     display: flex;
     align-items: center; 
     justify-content: center; 
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    visibility: visible;
+    transition: none;
     contain: layout style paint;
 }
 
-.a11-modal.open { 
-    opacity: 1;
-    visibility: visible;
+.a11-modal.hidden { 
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 @keyframes a11-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1859,13 +1860,9 @@ input:checked + .a11-switch-slider:before {
     flex-direction: column; 
     box-shadow: var(--a11-shadow-xl); 
     overflow: hidden;
-    transform: scale(0.98) translateY(-10px);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
-}
-
-.a11-modal.open .a11-modal-content {
-    transform: scale(1) translateY(0);
+    transform: none;
+    transition: none;
+    will-change: auto;
 }
 
 /* Prevent Layout Shifts during Mode Switching */

@@ -14,10 +14,12 @@ import {
 } from "./presetManager.js";
 import { 
     createSpecialContainer,
+    createVirtualWidget,
     SPECIAL_CONTAINER_TYPES,
     SPECIAL_WIDGET_TYPES,
     serializeSpecialContainer,
-    validateSpecialContainer
+    validateSpecialContainer,
+    syncVirtualWidget
 } from "./specialContainers.js";
 import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 

@@ -360,11 +360,59 @@ function createButtonWidget(virtualWidget, options, onValueChange) {
 }
 
 /**
+ * Update visual state of button based on type
+ */
+function updateButtonVisualState(element, buttonType, value) {
+    if (!element) return;
+    
+    switch (buttonType) {
+        case 'toggle': {
+            const checkbox = element.querySelector('.vw-button-toggle-input');
+            if (checkbox) checkbox.checked = !!value;
+            break;
+        }
+        case 'checkbox': {
+            const checkbox = element.querySelector('.vw-button-checkbox-input');
+            if (checkbox) checkbox.checked = !!value;
+            break;
+        }
+        case 'radio': {
+            const radio = element.querySelector('.vw-button-radio-input');
+            if (radio) radio.checked = !!value;
+            break;
+        }
+        case 'switch': {
+            const checkbox = element.querySelector('.vw-button-switch-input');
+            if (checkbox) checkbox.checked = !!value;
+            break;
+        }
+        case 'icon': {
+            if (value) {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+            break;
+        }
+        case 'button':
+        default: {
+            if (value) {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+            break;
+        }
+    }
+}
+
+/**
  * Standard button appearance
  */
 function createStandardButton(virtualWidget, options, onValueChange) {
     const button = document.createElement('button');
     button.className = 'vw-button';
+    button.dataset.buttonType = 'button';
     button.textContent = virtualWidget.config.label || virtualWidget.name || 'Button';
     
     // Add active class based on state
@@ -410,6 +458,7 @@ function createStandardButton(virtualWidget, options, onValueChange) {
 function createButtonAsToggle(virtualWidget, options, onValueChange) {
     const toggleContainer = document.createElement('div');
     toggleContainer.className = 'vw-button-toggle-container';
+    toggleContainer.dataset.buttonType = 'toggle';
     
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -459,6 +508,7 @@ function createButtonAsToggle(virtualWidget, options, onValueChange) {
 function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
     const checkboxContainer = document.createElement('div');
     checkboxContainer.className = 'vw-button-checkbox-container';
+    checkboxContainer.dataset.buttonType = 'checkbox';
     
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -515,6 +565,7 @@ function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
 function createButtonAsRadio(virtualWidget, options, onValueChange) {
     const radioContainer = document.createElement('div');
     radioContainer.className = 'vw-button-radio-container';
+    radioContainer.dataset.buttonType = 'radio';
     
     const radio = document.createElement('input');
     radio.type = 'radio';
@@ -561,6 +612,7 @@ function createButtonAsRadio(virtualWidget, options, onValueChange) {
 function createButtonAsSwitch(virtualWidget, options, onValueChange) {
     const switchContainer = document.createElement('div');
     switchContainer.className = 'vw-button-switch-container';
+    switchContainer.dataset.buttonType = 'switch';
     
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -621,6 +673,7 @@ function createButtonAsSwitch(virtualWidget, options, onValueChange) {
 function createButtonAsIcon(virtualWidget, options, onValueChange) {
     const iconButton = document.createElement('button');
     iconButton.className = 'vw-button-icon';
+    iconButton.dataset.buttonType = 'icon';
     
     // Support for icon text or emoji
     const iconContent = virtualWidget.config.icon || virtualWidget.config.label || '⚡';
@@ -1173,23 +1226,32 @@ export function updateVirtualWidgetValue(wrapper, newValue) {
     
     const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
     const widgetType = wrapper.dataset?.widgetType;
+    const buttonType = wrapper.querySelector('[data-button-type]')?.dataset?.buttonType || 
+                       wrapper.dataset?.buttonType;
     
     // Handle button-type widgets with different appearances
     if (widgetType === 'virtual_button') {
-        // Find the actual input element based on button type
-        const toggleInput = wrapper.querySelector('.vw-button-toggle-input');
-        const checkboxInput = wrapper.querySelector('.vw-button-checkbox-input');
-        const radioInput = wrapper.querySelector('.vw-button-radio-input');
-        const switchInput = wrapper.querySelector('.vw-button-switch-input');
+        // Use the new updateButtonVisualState function
+        const contentDiv = wrapper.querySelector('.gw-virtual-content');
+        let buttonElement = null;
         
-        if (toggleInput) {
-            toggleInput.checked = !!newValue;
-        } else if (checkboxInput) {
-            checkboxInput.checked = !!newValue;
-        } else if (radioInput) {
-            radioInput.checked = !!newValue;
-        } else if (switchInput) {
-            switchInput.checked = !!newValue;
+        // Find the button element based on type
+        if (buttonType === 'toggle') {
+            buttonElement = wrapper;
+        } else if (buttonType === 'checkbox') {
+            buttonElement = wrapper;
+        } else if (buttonType === 'radio') {
+            buttonElement = wrapper;
+        } else if (buttonType === 'switch') {
+            buttonElement = wrapper;
+        } else if (buttonType === 'icon') {
+            buttonElement = wrapper.querySelector('.vw-button-icon');
+        } else {
+            buttonElement = wrapper.querySelector('.vw-button');
+        }
+        
+        if (buttonElement) {
+            updateButtonVisualState(buttonElement, buttonType || 'button', newValue);
         }
         
         // Also save to global state

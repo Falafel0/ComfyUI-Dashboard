@@ -7,8 +7,6 @@ import { state } from "./state.js";
 import { 
     SPECIAL_CONTAINER_TYPES, 
     SPECIAL_WIDGET_TYPES,
-    BUTTON_ACTION_TYPES,
-    BUTTON_APPEARANCE_TYPES,
     createSpecialContainer,
     createVirtualWidget,
     connectVirtualWidget,
@@ -750,30 +748,12 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     // VIRTUAL_BUTTON
     else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
         const actionConfig = virtualWidget.actionConfig || {};
-        const appearanceType = virtualWidget.config?.appearanceType || BUTTON_APPEARANCE_TYPES.BUTTON;
-        
-        // Build appearance type options
-        let appearanceOptions = '';
-        for (const [key, value] of Object.entries(BUTTON_APPEARANCE_TYPES)) {
-            appearanceOptions += `<option value="${value}" ${appearanceType === value ? 'selected' : ''}>${key.replace(/_/g, ' ').toLowerCase()}</option>`;
-        }
-        
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Button Appearance Type</label>
-                <select id="vw-config-appearance-type" style="width:100%">
-                    ${appearanceOptions}
-                </select>
-                <small style="color:var(--a11-desc)">Visual style of the button</small>
-            </div>
-            
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
                 <label>Button Action Type</label>
                 <select id="vw-config-buttontype" style="width:100%">
                     <option value="launch_workflow" ${actionConfig.actionType === 'launch_workflow' ? 'selected' : ''}>🚀 Launch Workflow</option>
-                    <option value="launch_node" ${actionConfig.actionType === 'launch_node' ? 'selected' : ''}>▶️ Execute to Specific Node</option>
-                    <option value="bypass_node" ${actionConfig.actionType === 'bypass_node' ? 'selected' : ''}>⊘ Toggle Bypass Node</option>
-                    <option value="mute_node" ${actionConfig.actionType === 'mute_node' ? 'selected' : ''}>🔇 Toggle Mute Node</option>
+                    <option value="launch_node" ${actionConfig.actionType === 'launch_node' ? 'selected' : ''}>▶️ Execute Specific Node</option>
                     <option value="reset_widgets" ${actionConfig.actionType === 'reset_widgets' ? 'selected' : ''}>🔄 Reset All Widgets</option>
                     <option value="save_preset" ${actionConfig.actionType === 'save_preset' ? 'selected' : ''}>💾 Save Preset</option>
                     <option value="load_preset" ${actionConfig.actionType === 'load_preset' ? 'selected' : ''}>📂 Load Preset</option>
@@ -788,11 +768,11 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                 </select>
             </div>
             
-            <!-- Target Node Selection (for launch_node, bypass_node, mute_node) -->
-            <div class="a11-setting-row" id="vw-config-targetnode-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${['launch_node', 'bypass_node', 'mute_node'].includes(actionConfig.actionType) ? 'flex' : 'none'}">
+            <!-- Target Node Selection (for launch_node) -->
+            <div class="a11-setting-row" id="vw-config-targetnode-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${actionConfig.actionType === 'launch_node' ? 'flex' : 'none'}">
                 <label>Target Node ID</label>
                 <input type="text" id="vw-config-targetnode" value="${actionConfig.targetNodeId || ''}" style="width:100%" placeholder="Enter node ID (e.g., 5)">
-                <small style="color:var(--a11-desc)">The node to execute/bypass/mute when button is clicked</small>
+                <small style="color:var(--a11-desc)">The specific node to execute when button is clicked</small>
             </div>
             
             <!-- Preset ID Selection (for save/load preset) -->
@@ -821,18 +801,6 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             </div>
             
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Show Label</label>
-                <input type="checkbox" id="vw-config-showlabel" ${virtualWidget.config?.showLabel !== false ? 'checked' : ''} style="margin-right:8px;">
-                <span>Display label text on button</span>
-            </div>
-            
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Icon (emoji or unicode)</label>
-                <input type="text" id="vw-config-icon" value="${virtualWidget.config?.icon || ''}" style="width:100%" placeholder="e.g., ⚙️ 🚀 ▶️">
-                <small style="color:var(--a11-desc)">Used for icon and icon_text appearance types</small>
-            </div>
-            
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
                 <label>Accent Color</label>
                 <input type="color" id="vw-config-accentcolor" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
             </div>
@@ -848,7 +816,7 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             if (actionSelect) {
                 actionSelect.onchange = () => {
                     const selectedType = actionSelect.value;
-                    if (targetNodeRow) targetNodeRow.style.display = ['launch_node', 'bypass_node', 'mute_node'].includes(selectedType) ? 'flex' : 'none';
+                    if (targetNodeRow) targetNodeRow.style.display = selectedType === 'launch_node' ? 'flex' : 'none';
                     if (presetIdRow) presetIdRow.style.display = ['save_preset', 'load_preset'].includes(selectedType) ? 'flex' : 'none';
                     if (scriptRow) scriptRow.style.display = selectedType === 'custom_script' ? 'flex' : 'none';
                 };
@@ -1153,12 +1121,9 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             virtualWidget.actionConfig.script = configModal.querySelector('#vw-config-script')?.value || 'console.log("Button clicked!");';
             virtualWidget.actionConfig.confirmBeforeExec = configModal.querySelector('#vw-config-confirm')?.checked || false;
             
-            // Save appearance and style config
-            virtualWidget.config.appearanceType = configModal.querySelector('#vw-config-appearance-type').value;
+            // Also save common button config
             virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
             virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accentcolor').value;
-            virtualWidget.config.showLabel = configModal.querySelector('#vw-config-showlabel')?.checked !== false;
-            virtualWidget.config.icon = configModal.querySelector('#vw-config-icon')?.value || '';
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
             virtualWidget.config.displayType = configModal.querySelector('#vw-config-disptype').value;
             virtualWidget.config.ledColor = configModal.querySelector('#vw-config-ledcolor').value;

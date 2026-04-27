@@ -711,7 +711,8 @@ async function launchWorkflow() {
 async function launchNode(nodeId) {
     try {
         if (!nodeId) {
-            return { success: false, error: 'No target node specified' };\n        }
+            return { success: false, error: 'No target node specified' };
+        }
         const { app } = await import("../../scripts/app.js");
         const targetNode = app.graph.getNodeById(nodeId);
         if (!targetNode) {

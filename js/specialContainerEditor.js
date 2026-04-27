@@ -162,57 +162,9 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
                     <!-- Settings Tab -->
                     <div class="a11-modal-panel" id="sce-settings">
                         <div class="a11-settings-block">
-                            <div class="a11-settings-title">Container Appearance & Layout</div>
+                            <div class="a11-settings-title">Container Settings</div>
                             <div id="sce-dynamic-settings">
                                 ${renderDynamicSettings(null)}
-                            </div>
-                        </div>
-                        
-                        <div class="a11-settings-block" style="margin-top:20px;">
-                            <div class="a11-settings-title">Virtual Widget Defaults</div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                                <label>Default Button Style</label>
-                                <select id="sce-default-button-style" style="width:100%">
-                                    <option value="button">Standard Button</option>
-                                    <option value="toggle">Toggle Switch</option>
-                                    <option value="checkbox">Checkbox</option>
-                                    <option value="icon">Icon Only</option>
-                                    <option value="pill">Pill Shape</option>
-                                    <option value="outline">Outline</option>
-                                </select>
-                            </div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                                <label>Default Accent Color</label>
-                                <input type="color" id="sce-default-accent" value="${config?.settings?.defaultAccent || '#ea580c'}" style="width:100%; height:40px;">
-                            </div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                                <label><input type="checkbox" id="sce-show-widget-labels" ${config?.settings?.showWidgetLabels !== false ? 'checked' : ''}> Show Widget Labels by Default</label>
-                            </div>
-                        </div>
-                        
-                        <div class="a11-settings-block" style="margin-top:20px;">
-                            <div class="a11-settings-title">Interface Theme</div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                                <label>Color Scheme</label>
-                                <select id="sce-color-scheme" style="width:100%">
-                                    <option value="auto">Auto (System)</option>
-                                    <option value="dark" ${config?.settings?.colorScheme === 'dark' ? 'selected' : ''}>Dark Mode</option>
-                                    <option value="light" ${config?.settings?.colorScheme === 'light' ? 'selected' : ''}>Light Mode</option>
-                                </select>
-                            </div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                                <label>Border Radius</label>
-                                <input type="range" id="sce-border-radius" min="0" max="16" value="${config?.settings?.borderRadius ?? 6}" style="width:100%">
-                                <small style="color:var(--a11-desc)">${config?.settings?.borderRadius ?? 6}px</small>
-                            </div>
-                            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                                <label>Animation Speed</label>
-                                <select id="sce-animation-speed" style="width:100%">
-                                    <option value="fast">Fast</option>
-                                    <option value="normal" ${config?.settings?.animationSpeed !== 'fast' && config?.settings?.animationSpeed !== 'slow' ? 'selected' : ''}>Normal</option>
-                                    <option value="slow" ${config?.settings?.animationSpeed === 'slow' ? 'selected' : ''}>Slow</option>
-                                    <option value="none">None</option>
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -1252,14 +1204,6 @@ function saveSpecialContainer(modal) {
     
     // Collect settings based on container type
     const settings = {};
-    
-    // Collect common appearance and theme settings
-    settings.defaultButtonStyle = modal.querySelector('#sce-default-button-style')?.value || 'button';
-    settings.defaultAccent = modal.querySelector('#sce-default-accent')?.value || '#ea580c';
-    settings.showWidgetLabels = modal.querySelector('#sce-show-widget-labels')?.checked !== false;
-    settings.colorScheme = modal.querySelector('#sce-color-scheme')?.value || 'auto';
-    settings.borderRadius = parseInt(modal.querySelector('#sce-border-radius')?.value) || 6;
-    settings.animationSpeed = modal.querySelector('#sce-animation-speed')?.value || 'normal';
     
     switch (containerType) {
         case SPECIAL_CONTAINER_TYPES.DASHBOARD:

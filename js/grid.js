@@ -847,6 +847,7 @@ export function applyGridState() {
         const config = JSON.parse(el.dataset.config);
         const isPinned = config.pinned === true;
         const bypassMode = config.bypassMode || "default";
+        const isSpecialContainer = config.containerType === CONTAINER_TYPES.SPECIAL;
         const bypassBox = el.querySelector(".gw-bypass-chk");
         const gridItemWrapper = n.el;
         const linkedNodeIds = [...new Set((config.widgets || []).filter(w => w.nodeId).map(w => w.nodeId))];
@@ -880,8 +881,10 @@ export function applyGridState() {
         }
         else if (isExternallyDisabled) {
             gridItemWrapper.classList.add("hidden-by-group");
-            el.classList.add("is-bypassed");
-            if (bypassBox) {
+            if (!isSpecialContainer) {
+                el.classList.add("is-bypassed");
+            }
+            if (bypassBox && !isSpecialContainer) {
                 bypassBox.style.display = "inline-block";
                 bypassBox.checked = false;
                 // Keep checkbox enabled so user can re-enable the container
@@ -893,7 +896,7 @@ export function applyGridState() {
         else {
             gridItemWrapper.classList.remove("hidden-by-group");
             el.removeAttribute("data-reason");
-            if (bypassBox) {
+            if (bypassBox && !isSpecialContainer) {
                 bypassBox.style.display = "inline-block";
                 bypassBox.disabled = false;
                 const isManualBypassed = config.manualBypass === true;
@@ -1010,7 +1013,7 @@ export function renderGridItemContent(domElement, config) {
 
     const bypassMode = config.bypassMode || "default";
 
-    if (!config.pinned && !isStatic && bypassMode !== "graph") {
+    if (!config.pinned && !isStatic && bypassMode !== "graph" && config.containerType !== CONTAINER_TYPES.SPECIAL) {
         const bypassBox = document.createElement("input"); bypassBox.type = "checkbox"; bypassBox.className = "gw-bypass-chk"; bypassBox.checked = !config.manualBypass;
         bypassBox.onmousedown = (e) => e.stopPropagation();
         bypassBox.onchange = (e) => { config.manualBypass = !e.target.checked; saveAndRefresh(); applyGridState(); };

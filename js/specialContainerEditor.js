@@ -757,7 +757,15 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                     <option value="checkbox" ${virtualWidget.config?.buttonType === 'checkbox' ? 'selected' : ''}>☑️ Checkbox</option>
                     <option value="radio" ${virtualWidget.config?.buttonType === 'radio' ? 'selected' : ''}>🔘 Radio Button</option>
                     <option value="switch" ${virtualWidget.config?.buttonType === 'switch' ? 'selected' : ''}>⚡ Modern Switch</option>
+                    <option value="icon" ${virtualWidget.config?.buttonType === 'icon' ? 'selected' : ''}>🎯 Icon Button</option>
                 </select>
+            </div>
+            
+            <!-- Icon field for icon button type -->
+            <div class="a11-setting-row" id="vw-config-icon-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${virtualWidget.config?.buttonType === 'icon' ? 'flex' : 'none'}">
+                <label>Icon (emoji or text)</label>
+                <input type="text" id="vw-config-icon" value="${virtualWidget.config?.icon || '⚡'}" style="width:100%" placeholder="⚡">
+                <small style="color:var(--a11-desc)">Use emoji (⚡, 🚀, 🔥) or single character</small>
             </div>
             
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
@@ -836,6 +844,8 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             const targetNodesRow = configModal.querySelector('#vw-config-targetnodes-row');
             const presetIdRow = configModal.querySelector('#vw-config-presetid-row');
             const scriptRow = configModal.querySelector('#vw-config-script-row');
+            const buttonTypeSelect = configModal.querySelector('#vw-config-buttontype');
+            const iconRow = configModal.querySelector('#vw-config-icon-row');
             
             if (actionSelect) {
                 actionSelect.onchange = () => {
@@ -844,6 +854,13 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                     if (targetNodesRow) targetNodesRow.style.display = ['bypass_nodes', 'mute_nodes', 'toggle_bypass', 'toggle_mute'].includes(selectedType) ? 'flex' : 'none';
                     if (presetIdRow) presetIdRow.style.display = ['save_preset', 'load_preset'].includes(selectedType) ? 'flex' : 'none';
                     if (scriptRow) scriptRow.style.display = selectedType === 'custom_script' ? 'flex' : 'none';
+                };
+            }
+            
+            // Show/hide icon field based on button appearance type
+            if (buttonTypeSelect) {
+                buttonTypeSelect.onchange = () => {
+                    if (iconRow) iconRow.style.display = buttonTypeSelect.value === 'icon' ? 'flex' : 'none';
                 };
             }
         }, 0);
@@ -1157,6 +1174,7 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             virtualWidget.config.buttonType = configModal.querySelector('#vw-config-buttontype').value;
             virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
             virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accentcolor').value;
+            virtualWidget.config.icon = configModal.querySelector('#vw-config-icon')?.value || '⚡';
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
             virtualWidget.config.displayType = configModal.querySelector('#vw-config-disptype').value;
             virtualWidget.config.ledColor = configModal.querySelector('#vw-config-ledcolor').value;

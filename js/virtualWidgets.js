@@ -368,6 +368,14 @@ function createStandardButton(virtualWidget, options, onValueChange) {
 
     if (onValueChange) {
         button.addEventListener('click', async () => {
+            // Toggle state for standard button
+            virtualWidget.value = !virtualWidget.value;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, virtualWidget.value);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = virtualWidget.value;
+            }
+            
             await executeVirtualButtonAction(button, virtualWidget, onValueChange);
         });
     }
@@ -386,6 +394,7 @@ function createButtonAsToggle(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-toggle-input';
     checkbox.id = `vw-btn-toggle-${virtualWidget.id}`;
+    // Ensure we use the current value from virtualWidgetStates or config.savedValue
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -407,10 +416,16 @@ function createButtonAsToggle(virtualWidget, options, onValueChange) {
     if (onValueChange) {
         checkbox.addEventListener('change', async () => {
             virtualWidget.value = checkbox.checked;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, checkbox.checked);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = checkbox.checked;
+            }
+            
             if (checkbox.checked) {
                 await executeVirtualButtonAction(label, virtualWidget, onValueChange);
             }
-            onValueChange({ type: 'toggle', value: checkbox.checked, timestamp: Date.now() });
+            onValueChange(checkbox.checked);
         });
     }
     
@@ -428,6 +443,7 @@ function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-checkbox-input';
     checkbox.id = `vw-btn-checkbox-${virtualWidget.id}`;
+    // Ensure we use the current value from virtualWidgetStates or config.savedValue
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -445,14 +461,26 @@ function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
     if (onValueChange) {
         checkbox.addEventListener('change', async () => {
             virtualWidget.value = checkbox.checked;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, checkbox.checked);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = checkbox.checked;
+            }
+            
             if (checkbox.checked) {
                 await executeVirtualButtonAction(label, virtualWidget, onValueChange);
                 // Auto-uncheck after action for momentary button behavior
                 setTimeout(() => {
                     checkbox.checked = false;
                     virtualWidget.value = false;
-                    onValueChange({ type: 'click', value: false, timestamp: Date.now() });
+                    virtualWidgetStates.set(virtualWidget.id, false);
+                    if (virtualWidget.config) {
+                        virtualWidget.config.savedValue = false;
+                    }
+                    onValueChange(false);
                 }, 200);
+            } else {
+                onValueChange(false);
             }
         });
     }
@@ -472,6 +500,7 @@ function createButtonAsRadio(virtualWidget, options, onValueChange) {
     radio.className = 'vw-button-radio-input';
     radio.id = `vw-btn-radio-${virtualWidget.id}`;
     radio.name = `vw-btn-radio-group-${virtualWidget.containerId || 'default'}`;
+    // Ensure we use the current value from virtualWidgetStates or config.savedValue
     radio.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -489,10 +518,16 @@ function createButtonAsRadio(virtualWidget, options, onValueChange) {
     if (onValueChange) {
         radio.addEventListener('change', async () => {
             virtualWidget.value = radio.checked;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, radio.checked);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = radio.checked;
+            }
+            
             if (radio.checked) {
                 await executeVirtualButtonAction(label, virtualWidget, onValueChange);
             }
-            onValueChange({ type: 'radio', value: radio.checked, timestamp: Date.now() });
+            onValueChange(radio.checked);
         });
     }
     
@@ -510,6 +545,7 @@ function createButtonAsSwitch(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-switch-input';
     checkbox.id = `vw-btn-switch-${virtualWidget.id}`;
+    // Ensure we use the current value from virtualWidgetStates or config.savedValue
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -542,10 +578,16 @@ function createButtonAsSwitch(virtualWidget, options, onValueChange) {
     if (onValueChange) {
         checkbox.addEventListener('change', async () => {
             virtualWidget.value = checkbox.checked;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, checkbox.checked);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = checkbox.checked;
+            }
+            
             if (checkbox.checked) {
                 await executeVirtualButtonAction(switchLabel, virtualWidget, onValueChange);
             }
-            onValueChange({ type: 'switch', value: checkbox.checked, timestamp: Date.now() });
+            onValueChange(checkbox.checked);
         });
     }
     
@@ -574,6 +616,14 @@ function createButtonAsIcon(virtualWidget, options, onValueChange) {
     
     if (onValueChange) {
         iconButton.addEventListener('click', async () => {
+            // Toggle state for icon button
+            virtualWidget.value = !virtualWidget.value;
+            // Save state immediately
+            virtualWidgetStates.set(virtualWidget.id, virtualWidget.value);
+            if (virtualWidget.config) {
+                virtualWidget.config.savedValue = virtualWidget.value;
+            }
+            
             await executeVirtualButtonAction(iconButton, virtualWidget, onValueChange);
         });
     }
@@ -612,8 +662,8 @@ async function executeVirtualButtonAction(buttonElement, virtualWidget, onValueC
         }
     }
     
-    // Also trigger the standard value change callback
-    onValueChange({ type: 'click', timestamp: Date.now() });
+    // Also trigger the standard value change callback with simple value
+    onValueChange(virtualWidget.value !== undefined ? virtualWidget.value : true);
 }
 
 /**

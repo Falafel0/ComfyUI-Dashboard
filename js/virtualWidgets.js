@@ -25,6 +25,11 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     wrapper.dataset.containerId = containerId;
     wrapper.dataset.widgetType = virtualWidget.type;
 
+    // Add updateValue method for external updates
+    wrapper.updateValue = (newValue) => {
+        updateVirtualWidgetValue(wrapper, newValue);
+    };
+
     // Create label if not hidden
     if (!options.hideLabel) {
         const label = document.createElement('div');

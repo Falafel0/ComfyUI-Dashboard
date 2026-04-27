@@ -330,22 +330,24 @@ export function injectUI() {
     document.body.appendChild(overlay);
 }
 
-// Helper function to close modals instantly without twitching
+// Helper function to close modals smoothly without twitching
 export function closeModalSmooth(modal) {
     if (!modal) return;
-    modal.classList.add('hidden');
-    // Remove immediately without waiting for transition
+    modal.classList.remove('open');
+    // Wait for transition to complete before removing from DOM
     setTimeout(() => {
         if (modal && modal.parentNode) {
             modal.remove();
         }
-    }, 0);
+    }, 200); // Match CSS transition duration
 }
 
 function openGlobalSettings() {
     const modal = document.createElement("div");
     modal.className = "a11-modal";
-    // No animation, instant display
+    // Force reflow to ensure transition works
+    void modal.offsetWidth;
+    modal.classList.add('open');
     modal.innerHTML = `
         <div class="a11-modal-content" style="width:700px; max-height:85vh; overflow:hidden; display:flex; flex-direction:column;">
             <div class="a11-modal-title">⚙ Global Settings</div>

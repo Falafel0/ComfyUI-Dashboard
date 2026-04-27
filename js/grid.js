@@ -2,7 +2,6 @@ import { app } from "../../scripts/app.js";
 import { state, applyValuePreset, saveValuePresets, broadcastWidgetUpdate } from "./state.js";
 import { createWidgetDOM } from "./widgets.js";
 import { openPresetManagerModal } from "./widgets/PresetManagerUI.js";
-import { closeModalSmooth } from "./ui.js";
 import {
     sortPresets,
     getUniqueCategories,
@@ -116,9 +115,7 @@ const LAYOUT_MODES = {
 const DENSITY_MODES = { "zero": "Zero (0px)", "compact": "Compact", "normal": "Normal", "loose": "Loose", "wide": "Wide" };
 
 export function openSingleWidgetSettings(wRef, onSave) {
-    const modal = document.createElement("div"); 
-    modal.className = "a11-modal";
-    // Instant display, no animation
+    const modal = document.createElement("div"); modal.className = "a11-modal open";
     const node = app.graph.getNodeById(wRef.nodeId);
 
     let originalName = "Unknown";
@@ -237,7 +234,7 @@ export function openSingleWidgetSettings(wRef, onSave) {
         </div>`;
     document.body.appendChild(modal);
 
-    modal.querySelector("#sw-cancel").onclick = () => closeModalSmooth(modal);
+    modal.querySelector("#sw-cancel").onclick = () => modal.remove();
 
     modal.querySelector("#sw-save").onclick = () => {
         wRef.alias = modal.querySelector("#sw-alias").value;
@@ -273,15 +270,14 @@ export function openSingleWidgetSettings(wRef, onSave) {
         const stepInp = modal.querySelector("#sw-step");
         if (stepInp) wRef.step = stepInp.value !== "" ? parseFloat(stepInp.value) : "";
 
-        closeModalSmooth(modal);
+        modal.remove();
         if (onSave) onSave();
     };
 }
 
 function openContainerValuePresets(config, domElement) {
     const modal = document.createElement("div");
-    modal.className = "a11-modal";
-    // Instant display, no animation
+    modal.className = "a11-modal open";
     const currentTab = state.appData.tabs[state.appData.activeIdx];
     const defaultCat = config.presetCategory || currentTab.presetCategory || "General";
 
@@ -453,7 +449,7 @@ function openContainerValuePresets(config, domElement) {
         };
 
         modal.querySelector("#pm-close").onclick = () => {
-            closeModalSmooth(modal);
+            modal.remove();
             renderGridItemContent(domElement, config);
         };
     };
@@ -1389,7 +1385,7 @@ function updateWidgetWrapperStyles(wrapper, wRef, options) {
 }
 
 export function openContainerSettings(config, domElement) {
-    const modal = document.createElement("div"); modal.className = "a11-modal";
+    const modal = document.createElement("div"); modal.className = "a11-modal open";
     let widgetsHtml = '';
 
     let activeLayout = config.layoutMode || "list";
@@ -1623,11 +1619,11 @@ export function openContainerSettings(config, domElement) {
             if (!domElement.classList.contains("is-static-container")) domElement.dataset.config = JSON.stringify(config);
             renderGridItemContent(domElement, config);
             updateGraphExtra(true);
-            closeModalSmooth(modal);
+            modal.remove();
         }
     };
 
-    modal.querySelector("#c-cancel").onclick = () => closeModalSmooth(modal);
+    modal.querySelector("#c-cancel").onclick = () => modal.remove();
 
     modal.querySelector("#c-save").onclick = () => {
         config.bypassMode = modal.querySelector("#c-bypass-mode").value;
@@ -1699,14 +1695,14 @@ export function openContainerSettings(config, domElement) {
         if (!domElement.classList.contains("is-static-container")) domElement.dataset.config = JSON.stringify(config);
         renderGridItemContent(domElement, config);
         updateGraphExtra(true);
-        closeModalSmooth(modal);
+        modal.remove();
     };
 }
 
 export function openGroupSettings() {
     const currentTab = state.appData.tabs[state.appData.activeIdx];
     const modal = document.createElement("div");
-    modal.className = "a11-modal";
+    modal.className = "a11-modal open";
 
     const activeGroups = currentTab.activeGroups || [];
     const groupAction = currentTab.groupActionType || 'bypass';
@@ -1820,11 +1816,11 @@ export function openGroupSettings() {
 
             updateGraphExtra(true); applyGridState();
             if (state.grid) state.grid.float(currentTab.gridFloat);
-            closeModalSmooth(modal);
+            modal.remove();
         };
     });
 
-    modal.querySelector("#gm-cancel").onclick = () => closeModalSmooth(modal);
+    modal.querySelector("#gm-cancel").onclick = () => modal.remove();
     modal.querySelector("#gm-save").onclick = () => {
         currentTab.groupActionType = modal.querySelector("#gm-action-type").value;
         currentTab.backgroundRun = modal.querySelector("#gm-bgrun").checked;
@@ -1836,7 +1832,7 @@ export function openGroupSettings() {
 
         updateGraphExtra(true); applyGridState();
         if (state.grid) state.grid.float(currentTab.gridFloat);
-        closeModalSmooth(modal);
+        modal.remove();
     };
 }
 

@@ -750,10 +750,26 @@ function openWidgetConfigDialog(virtualWidget, modal) {
         const actionConfig = virtualWidget.actionConfig || {};
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Button Action Type</label>
+                <label>Button Appearance Type</label>
                 <select id="vw-config-buttontype" style="width:100%">
+                    <option value="button" ${virtualWidget.config?.buttonType === 'button' ? 'selected' : ''}>🔘 Standard Button</option>
+                    <option value="toggle" ${virtualWidget.config?.buttonType === 'toggle' ? 'selected' : ''}>🔄 Toggle Switch</option>
+                    <option value="checkbox" ${virtualWidget.config?.buttonType === 'checkbox' ? 'selected' : ''}>☑️ Checkbox</option>
+                    <option value="radio" ${virtualWidget.config?.buttonType === 'radio' ? 'selected' : ''}>🔘 Radio Button</option>
+                    <option value="switch" ${virtualWidget.config?.buttonType === 'switch' ? 'selected' : ''}>⚡ Modern Switch</option>
+                </select>
+            </div>
+            
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Button Action Type</label>
+                <select id="vw-config-actiontype" style="width:100%">
                     <option value="launch_workflow" ${actionConfig.actionType === 'launch_workflow' ? 'selected' : ''}>🚀 Launch Workflow</option>
                     <option value="launch_node" ${actionConfig.actionType === 'launch_node' ? 'selected' : ''}>▶️ Execute Specific Node</option>
+                    <option value="launch_to_node" ${actionConfig.actionType === 'launch_to_node' ? 'selected' : ''}>⏭️ Execute Up To Node</option>
+                    <option value="bypass_nodes" ${actionConfig.actionType === 'bypass_nodes' ? 'selected' : ''}>⏩ Bypass Nodes</option>
+                    <option value="mute_nodes" ${actionConfig.actionType === 'mute_nodes' ? 'selected' : ''}>🔇 Mute Nodes</option>
+                    <option value="toggle_bypass" ${actionConfig.actionType === 'toggle_bypass' ? 'selected' : ''}>🔁 Toggle Bypass</option>
+                    <option value="toggle_mute" ${actionConfig.actionType === 'toggle_mute' ? 'selected' : ''}>🔀 Toggle Mute</option>
                     <option value="reset_widgets" ${actionConfig.actionType === 'reset_widgets' ? 'selected' : ''}>🔄 Reset All Widgets</option>
                     <option value="save_preset" ${actionConfig.actionType === 'save_preset' ? 'selected' : ''}>💾 Save Preset</option>
                     <option value="load_preset" ${actionConfig.actionType === 'load_preset' ? 'selected' : ''}>📂 Load Preset</option>
@@ -768,11 +784,18 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                 </select>
             </div>
             
-            <!-- Target Node Selection (for launch_node) -->
-            <div class="a11-setting-row" id="vw-config-targetnode-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${actionConfig.actionType === 'launch_node' ? 'flex' : 'none'}">
+            <!-- Target Node Selection (for launch_node, launch_to_node) -->
+            <div class="a11-setting-row" id="vw-config-targetnode-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${['launch_node', 'launch_to_node'].includes(actionConfig.actionType) ? 'flex' : 'none'}">
                 <label>Target Node ID</label>
                 <input type="text" id="vw-config-targetnode" value="${actionConfig.targetNodeId || ''}" style="width:100%" placeholder="Enter node ID (e.g., 5)">
                 <small style="color:var(--a11-desc)">The specific node to execute when button is clicked</small>
+            </div>
+            
+            <!-- Node IDs for bypass/mute actions -->
+            <div class="a11-setting-row" id="vw-config-targetnodes-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${['bypass_nodes', 'mute_nodes', 'toggle_bypass', 'toggle_mute'].includes(actionConfig.actionType) ? 'flex' : 'none'}">
+                <label>Target Node IDs (comma-separated)</label>
+                <input type="text" id="vw-config-targetnodes" value="${(actionConfig.targetNodes || []).join(',')}" style="width:100%" placeholder="e.g., 1,2,3">
+                <small style="color:var(--a11-desc)">Comma-separated list of node IDs to affect</small>
             </div>
             
             <!-- Preset ID Selection (for save/load preset) -->
@@ -808,15 +831,17 @@ function openWidgetConfigDialog(virtualWidget, modal) {
         
         // Add event listener for action type change to show/hide relevant fields
         setTimeout(() => {
-            const actionSelect = configModal.querySelector('#vw-config-buttontype');
+            const actionSelect = configModal.querySelector('#vw-config-actiontype');
             const targetNodeRow = configModal.querySelector('#vw-config-targetnode-row');
+            const targetNodesRow = configModal.querySelector('#vw-config-targetnodes-row');
             const presetIdRow = configModal.querySelector('#vw-config-presetid-row');
             const scriptRow = configModal.querySelector('#vw-config-script-row');
             
             if (actionSelect) {
                 actionSelect.onchange = () => {
                     const selectedType = actionSelect.value;
-                    if (targetNodeRow) targetNodeRow.style.display = selectedType === 'launch_node' ? 'flex' : 'none';
+                    if (targetNodeRow) targetNodeRow.style.display = ['launch_node', 'launch_to_node'].includes(selectedType) ? 'flex' : 'none';
+                    if (targetNodesRow) targetNodesRow.style.display = ['bypass_nodes', 'mute_nodes', 'toggle_bypass', 'toggle_mute'].includes(selectedType) ? 'flex' : 'none';
                     if (presetIdRow) presetIdRow.style.display = ['save_preset', 'load_preset'].includes(selectedType) ? 'flex' : 'none';
                     if (scriptRow) scriptRow.style.display = selectedType === 'custom_script' ? 'flex' : 'none';
                 };
@@ -1115,13 +1140,21 @@ function openWidgetConfigDialog(virtualWidget, modal) {
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
             // Save new action config for buttons
             virtualWidget.actionConfig = virtualWidget.actionConfig || {};
-            virtualWidget.actionConfig.actionType = configModal.querySelector('#vw-config-buttontype').value;
+            virtualWidget.actionConfig.actionType = configModal.querySelector('#vw-config-actiontype').value;
             virtualWidget.actionConfig.targetNodeId = configModal.querySelector('#vw-config-targetnode')?.value || null;
             virtualWidget.actionConfig.presetId = configModal.querySelector('#vw-config-presetid')?.value || null;
             virtualWidget.actionConfig.script = configModal.querySelector('#vw-config-script')?.value || 'console.log("Button clicked!");';
             virtualWidget.actionConfig.confirmBeforeExec = configModal.querySelector('#vw-config-confirm')?.checked || false;
             
+            // Parse target nodes for bypass/mute actions
+            const targetNodesStr = configModal.querySelector('#vw-config-targetnodes')?.value || '';
+            virtualWidget.actionConfig.targetNodes = targetNodesStr.split(',')
+                .map(s => s.trim())
+                .filter(s => s.length > 0)
+                .map(s => parseInt(s) || s);
+            
             // Also save common button config
+            virtualWidget.config.buttonType = configModal.querySelector('#vw-config-buttontype').value;
             virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
             virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accentcolor').value;
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {

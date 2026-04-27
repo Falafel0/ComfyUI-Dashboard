@@ -315,11 +315,11 @@ function renderConnectionsList(config) {
  * Render dynamic settings based on container type
  */
 function renderDynamicSettings(config) {
-    const specialType = config?.specialType || 'dashboard';
+    const specialType = config?.specialType || SPECIAL_CONTAINER_TYPES.DASHBOARD;
     let settingsHtml = '';
     
     switch (specialType) {
-        case 'dashboard':
+        case SPECIAL_CONTAINER_TYPES.DASHBOARD:
             settingsHtml = `
                 <div class="a11-setting-row"><label>Refresh Rate (ms)</label><input type="number" id="sce-refresh-rate" value="${config?.settings?.refreshRate || 1000}" min="100" step="100"></div>
                 <div class="a11-setting-row"><label>Layout Mode</label>
@@ -331,21 +331,21 @@ function renderDynamicSettings(config) {
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-header" ${config?.settings?.showHeader !== false ? 'checked' : ''}> Show Header</label></div>
             `;
             break;
-        case 'control_panel':
+        case SPECIAL_CONTAINER_TYPES.CONTROL_PANEL:
             settingsHtml = `
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-auto-apply" ${config?.settings?.autoApply !== false ? 'checked' : ''}> Auto-Apply Changes</label></div>
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-confirm-changes" ${config?.settings?.confirmChanges ? 'checked' : ''}> Confirm Changes</label></div>
                 <div class="a11-setting-row"><label>Preset Slots</label><input type="number" id="sce-preset-slots" value="${config?.settings?.presetSlots || 5}" min="1" max="20"></div>
             `;
             break;
-        case 'monitor':
+        case SPECIAL_CONTAINER_TYPES.MONITOR:
             settingsHtml = `
                 <div class="a11-setting-row"><label>Update Interval (ms)</label><input type="number" id="sce-update-interval" value="${config?.settings?.updateInterval || 500}" min="100" step="100"></div>
                 <div class="a11-setting-row"><label>History Size</label><input type="number" id="sce-history-size" value="${config?.settings?.historySize || 100}" min="10" max="1000"></div>
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-graph" ${config?.settings?.showGraph !== false ? 'checked' : ''}> Show Graph</label></div>
             `;
             break;
-        case 'form':
+        case SPECIAL_CONTAINER_TYPES.FORM:
             settingsHtml = `
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-validate-submit" ${config?.settings?.validateOnSubmit !== false ? 'checked' : ''}> Validate on Submit</label></div>
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-reset" ${config?.settings?.showResetButton !== false ? 'checked' : ''}> Show Reset Button</label></div>
@@ -357,7 +357,7 @@ function renderDynamicSettings(config) {
                 </div>
             `;
             break;
-        case 'gallery':
+        case SPECIAL_CONTAINER_TYPES.GALLERY:
             settingsHtml = `
                 <div class="a11-setting-row"><label>Thumbnail Size (px)</label><input type="number" id="sce-thumb-size" value="${config?.settings?.thumbnailSize || 128}" min="64" max="512" step="32"></div>
                 <div class="a11-setting-row"><label><input type="checkbox" id="sce-show-captions" ${config?.settings?.showCaptions !== false ? 'checked' : ''}> Show Captions</label></div>
@@ -565,12 +565,12 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     configFields += `
         <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
             <label>Label</label>
-            <input type="text" id="vw-config-label" value="${virtualWidget.config?.label || ''}" style="width:100%">
+            <input type="text" id="vw-config-label" value="${virtualWidget.config?.label || ''}" style="width:100%" placeholder="Widget label">
         </div>
     `;
     
     // Type-specific fields
-    if (['virtual_number', 'virtual_slider'].includes(virtualWidget.type)) {
+    if ([SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER, SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER].includes(virtualWidget.type)) {
         configFields += `
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
                 <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
@@ -587,22 +587,90 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                 </div>
             </div>
         `;
-    } else if (virtualWidget.type === 'virtual_dropdown') {
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                 <label>Options (comma-separated)</label>
-                <input type="text" id="vw-config-options" value="${(virtualWidget.config?.options || []).join(', ')}" style="width:100%">
+                <input type="text" id="vw-config-options" value="${(virtualWidget.config?.options || []).join(', ')}" style="width:100%" placeholder="Option1, Option2, Option3">
             </div>
         `;
-    } else if (virtualWidget.type === 'custom_html') {
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                 <label>HTML Content</label>
-                <textarea id="vw-config-html" style="width:100%; min-height:150px; font-family:monospace;">${virtualWidget.config?.html || ''}</textarea>
+                <textarea id="vw-config-html" style="width:100%; min-height:150px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.html || ''}</textarea>
             </div>
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                 <label>CSS Styles</label>
-                <textarea id="vw-config-styles" style="width:100%; min-height:80px; font-family:monospace;">${virtualWidget.config?.styles || ''}</textarea>
+                <textarea id="vw-config-styles" style="width:100%; min-height:80px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.styles || ''}</textarea>
+            </div>
+        `;
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Placeholder</label>
+                <input type="text" id="vw-config-placeholder" value="${virtualWidget.config?.placeholder || ''}" style="width:100%" placeholder="Enter placeholder text">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Rows</label>
+                <input type="number" id="vw-config-rows" value="${virtualWidget.config?.rows || 3}" min="1" max="20" style="width:100%">
+            </div>
+        `;
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Button Label</label>
+                <input type="text" id="vw-config-btn-label" value="${virtualWidget.config?.label || virtualWidget.name || 'Button'}" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Accent Color</label>
+                <input type="color" id="vw-config-accent" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
+            </div>
+        `;
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Format</label>
+                <select id="vw-config-format" style="width:100%">
+                    <option value="default" ${virtualWidget.config?.format === 'default' ? 'selected' : ''}>Default</option>
+                    <option value="number" ${virtualWidget.config?.format === 'number' ? 'selected' : ''}>Number</option>
+                    <option value="percent" ${virtualWidget.config?.format === 'percent' ? 'selected' : ''}>Percent</option>
+                    <option value="currency" ${virtualWidget.config?.format === 'currency' ? 'selected' : ''}>Currency</option>
+                    <option value="boolean" ${virtualWidget.config?.format === 'boolean' ? 'selected' : ''}>Boolean</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Font Size (px)</label>
+                <input type="number" id="vw-config-fontsize" value="${virtualWidget.config?.fontSize || 16}" min="10" max="72" style="width:100%">
+            </div>
+        `;
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Fit Mode</label>
+                <select id="vw-config-fit" style="width:100%">
+                    <option value="contain" ${virtualWidget.config?.fit === 'contain' ? 'selected' : ''}>Contain</option>
+                    <option value="cover" ${virtualWidget.config?.fit === 'cover' ? 'selected' : ''}>Cover</option>
+                    <option value="fill" ${virtualWidget.config?.fit === 'fill' ? 'selected' : ''}>Fill</option>
+                    <option value="none" ${virtualWidget.config?.fit === 'none' ? 'selected' : ''}>None</option>
+                </select>
+            </div>
+        `;
+    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
+        configFields += `
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Min</label>
+                    <input type="number" id="vw-config-min" value="${virtualWidget.config?.min ?? 0}" style="width:100%">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Max</label>
+                    <input type="number" id="vw-config-max" value="${virtualWidget.config?.max ?? 100}" style="width:100%">
+                </div>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Accent Color</label>
+                <input type="color" id="vw-config-accent" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
             </div>
         `;
     }
@@ -610,7 +678,7 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     configModal.innerHTML = `
         <div class="a11-modal-content" style="width:500px;">
             <div class="a11-modal-title">⚙️ Configure ${virtualWidget.type.replace(/_/g, ' ').toUpperCase()}</div>
-            <div class="a11-modal-body">
+            <div class="a11-modal-body" style="overflow-y:auto; max-height:70vh; padding:15px;">
                 ${configFields}
             </div>
             <div class="a11-modal-footer">
@@ -629,18 +697,33 @@ function openWidgetConfigDialog(virtualWidget, modal) {
         virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
         
         // Save type-specific config
-        if (['virtual_number', 'virtual_slider'].includes(virtualWidget.type)) {
+        if ([SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER, SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER].includes(virtualWidget.type)) {
             virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
             virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
             virtualWidget.config.step = parseFloat(configModal.querySelector('#vw-config-step').value) || 1;
-        } else if (virtualWidget.type === 'virtual_dropdown') {
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
             virtualWidget.config.options = configModal.querySelector('#vw-config-options').value
                 .split(',')
                 .map(s => s.trim())
                 .filter(s => s.length > 0);
-        } else if (virtualWidget.type === 'custom_html') {
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
             virtualWidget.config.html = configModal.querySelector('#vw-config-html').value;
             virtualWidget.config.styles = configModal.querySelector('#vw-config-styles').value;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {
+            virtualWidget.config.placeholder = configModal.querySelector('#vw-config-placeholder').value;
+            virtualWidget.config.rows = parseInt(configModal.querySelector('#vw-config-rows').value) || 3;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+            virtualWidget.config.label = configModal.querySelector('#vw-config-btn-label').value;
+            virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accent').value;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
+            virtualWidget.config.format = configModal.querySelector('#vw-config-format').value;
+            virtualWidget.config.fontSize = parseInt(configModal.querySelector('#vw-config-fontsize').value) || 16;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
+            virtualWidget.config.fit = configModal.querySelector('#vw-config-fit').value;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
+            virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
+            virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
+            virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accent').value;
         }
         
         configModal.remove();
@@ -663,27 +746,27 @@ function saveSpecialContainer(modal) {
     const settings = {};
     
     switch (containerType) {
-        case 'dashboard':
+        case SPECIAL_CONTAINER_TYPES.DASHBOARD:
             settings.refreshRate = parseInt(modal.querySelector('#sce-refresh-rate').value) || 1000;
             settings.layout = modal.querySelector('#sce-dashboard-layout').value;
             settings.showHeader = modal.querySelector('#sce-show-header').checked;
             break;
-        case 'control_panel':
+        case SPECIAL_CONTAINER_TYPES.CONTROL_PANEL:
             settings.autoApply = modal.querySelector('#sce-auto-apply').checked;
             settings.confirmChanges = modal.querySelector('#sce-confirm-changes').checked;
             settings.presetSlots = parseInt(modal.querySelector('#sce-preset-slots').value) || 5;
             break;
-        case 'monitor':
+        case SPECIAL_CONTAINER_TYPES.MONITOR:
             settings.updateInterval = parseInt(modal.querySelector('#sce-update-interval').value) || 500;
             settings.historySize = parseInt(modal.querySelector('#sce-history-size').value) || 100;
             settings.showGraph = modal.querySelector('#sce-show-graph').checked;
             break;
-        case 'form':
+        case SPECIAL_CONTAINER_TYPES.FORM:
             settings.validateOnSubmit = modal.querySelector('#sce-validate-submit').checked;
             settings.showResetButton = modal.querySelector('#sce-show-reset').checked;
             settings.submitAction = modal.querySelector('#sce-submit-action').value;
             break;
-        case 'gallery':
+        case SPECIAL_CONTAINER_TYPES.GALLERY:
             settings.thumbnailSize = parseInt(modal.querySelector('#sce-thumb-size').value) || 128;
             settings.showCaptions = modal.querySelector('#sce-show-captions').checked;
             settings.columns = parseInt(modal.querySelector('#sce-gallery-cols').value) || 4;

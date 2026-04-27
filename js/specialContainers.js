@@ -119,6 +119,32 @@ export function createVirtualWidget(type, options = {}) {
             validation: null,
             style: {}
         },
+        displaySettings: {
+            visible: true,           // Overall visibility
+            viewMode: 'normal',      // 'normal', 'compact', 'detailed', 'hidden'
+            order: 0,                // Display order in container
+            conditionalDisplay: null,// { operator: 'gt'|'lt'|'eq'|'neq', value: any, sourceWidgetId: string }
+            minWidth: null,          // Minimum width in px or %
+            maxWidth: null,          // Maximum width in px or %
+            minHeight: null,         // Minimum height in px
+            maxHeight: null,         // Maximum height in px
+            grow: false,             // Allow widget to grow in flex/grid layouts
+            shrink: true,            // Allow widget to shrink
+            align: 'stretch',        // 'start', 'end', 'center', 'stretch', 'baseline'
+            justify: 'auto',         // For grid items: 'start', 'end', 'center', 'stretch'
+            columnSpan: 1,           // Grid column span
+            rowSpan: 1,              // Grid row span
+            showLabel: true,         // Show/hide label
+            labelPosition: 'top',    // 'top', 'bottom', 'left', 'right', 'overlay'
+            icon: null,              // Icon class or URL
+            tooltip: null,           // Tooltip text
+            animations: {
+                enabled: true,       // Enable CSS animations
+                entrance: 'fade',    // 'fade', 'slide', 'scale', 'none'
+                hover: 'highlight',  // 'highlight', 'lift', 'glow', 'none'
+                duration: 300        // Animation duration in ms
+            }
+        },
         connection: null, // { nodeId, widgetIndex, direction: 'input'|'output'|'bidirectional' }
         ...options
     };
@@ -564,4 +590,114 @@ function getSpecialWidgetCategory(type) {
     }
     if (type === 'custom_html') return 'custom';
     return 'other';
+}
+
+/**
+ * Update display settings for a virtual widget
+ * @param {Object} virtualWidget - Virtual widget to update
+ * @param {Object} newSettings - New display settings to merge
+ * @returns {Object} Updated virtual widget
+ */
+export function updateVirtualWidgetDisplaySettings(virtualWidget, newSettings) {
+    if (!virtualWidget) return null;
+    
+    if (!virtualWidget.displaySettings) {
+        virtualWidget.displaySettings = {};
+    }
+    
+    // Deep merge for animations
+    if (newSettings.animations) {
+        virtualWidget.displaySettings.animations = {
+            ...(virtualWidget.displaySettings.animations || {}),
+            ...newSettings.animations
+        };
+        delete newSettings.animations;
+    }
+    
+    // Merge other settings
+    virtualWidget.displaySettings = {
+        ...virtualWidget.displaySettings,
+        ...newSettings
+    };
+    
+    return virtualWidget;
+}
+
+/**
+ * Validate display settings configuration
+ * @param {Object} displaySettings - Display settings to validate
+ * @returns {Object} Validation result with valid flag, errors and warnings
+ */
+export function validateDisplaySettings(displaySettings) {
+    const errors = [];
+    const warnings = [];
+    
+    if (!displaySettings) {
+        return { valid: true, errors, warnings };
+    }
+    
+    // Validate viewMode
+    const validViewModes = ['normal', 'compact', 'detailed', 'hidden'];
+    if (displaySettings.viewMode && !validViewModes.includes(displaySettings.viewMode)) {
+        errors.push(`Invalid viewMode: ${displaySettings.viewMode}. Must be one of: ${validViewModes.join(', ')}`);
+    }
+    
+    // Validate labelPosition
+    const validLabelPositions = ['top', 'bottom', 'left', 'right', 'overlay'];
+    if (displaySettings.labelPosition && !validLabelPositions.includes(displaySettings.labelPosition)) {
+        errors.push(`Invalid labelPosition: ${displaySettings.labelPosition}. Must be one of: ${validLabelPositions.join(', ')}`);
+    }
+    
+    // Validate align
+    const validAligns = ['start', 'end', 'center', 'stretch', 'baseline', 'auto'];
+    if (displaySettings.align && !validAligns.includes(displaySettings.align)) {
+        errors.push(`Invalid align: ${displaySettings.align}. Must be one of: ${validAligns.join(', ')}`);
+    }
+    
+    // Validate animation settings
+    if (displaySettings.animations) {
+        const validEntrance = ['fade', 'slide', 'scale', 'none'];
+        const validHover = ['highlight', 'lift', 'glow', 'none'];
+        
+        if (displaySettings.animations.entrance && !validEntrance.includes(displaySettings.animations.entrance)) {
+            errors.push(`Invalid animation.entrance: ${displaySettings.animations.entrance}. Must be one of: ${validEntrance.join(', ')}`);
+        }
+        
+        if (displaySettings.animations.hover && !validHover.includes(displaySettings.animations.hover)) {
+            errors.push(`Invalid animation.hover: ${displaySettings.animations.hover}. Must be one of: ${validHover.join(', ')}`);
+        }
+        
+        if (displaySettings.animations.duration && (typeof displaySettings.animations.duration !== 'number' || displaySettings.animations.duration < 0)) {
+            errors.push('Animation duration must be a positive number');
+        } else if (displaySettings.animations.duration > 5000) {
+            warnings.push('Animation duration > 5000ms may cause UX issues');
+        }
+    }
+    
+    // Validate conditional display
+    if (displaySettings.conditionalDisplay) {
+        const validOperators = ['eq', '==', 'neq', '!=', 'gt', '>', 'gte', '>=', 'lt', '<', 'lte', '<=', 'truthy', 'falsy'];
+        if (displaySettings.conditionalDisplay.operator && !validOperators.includes(displaySettings.conditionalDisplay.operator)) {
+            errors.push(`Invalid conditionalDisplay.operator: ${displaySettings.conditionalDisplay.operator}`);
+        }
+        
+        if (!displaySettings.conditionalDisplay.sourceWidgetId) {
+            warnings.push('conditionalDisplay requires sourceWidgetId to function');
+        }
+    }
+    
+    // Validate grid spans
+    if (displaySettings.columnSpan && (typeof displaySettings.columnSpan !== 'number' || displaySettings.columnSpan < 1)) {
+        errors.push('columnSpan must be a positive integer');
+    }
+    
+    if (displaySettings.rowSpan && (typeof displaySettings.rowSpan !== 'number' || displaySettings.rowSpan < 1)) {
+        errors.push('rowSpan must be a positive integer');
+    }
+    
+    return {
+        valid: errors.length === 0,
+        errors,
+        warnings
+    };
 }

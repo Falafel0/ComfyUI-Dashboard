@@ -1991,9 +1991,14 @@ body.modal-open {
    WIDGET ANIMATIONS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Анимация появления виджетов */
-.gw-widget-wrapper {
+/* Анимация появления виджетов - только для новых виджетов */
+.gw-widget-wrapper.gw-widget-new {
     animation: a11-widget-slide-in 0.2s ease-out;
+}
+
+/* Базовые стили для виджетов без анимации при обновлении */
+.gw-widget-wrapper {
+    /* Remove default animation to prevent twitching on updates */
 }
 
 @keyframes a11-widget-slide-in {

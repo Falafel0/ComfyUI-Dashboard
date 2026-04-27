@@ -1203,6 +1203,12 @@ export function renderGridItemContent(domElement, config) {
 
                 if (generatedWrapper) {
                     generatedWrapper.dataset.widgetKey = widgetKey;
+                    // Mark as new for animation
+                    generatedWrapper.classList.add('gw-widget-new');
+                    // Remove the animation class after animation completes to prevent re-animation on updates
+                    setTimeout(() => {
+                        generatedWrapper.classList.remove('gw-widget-new');
+                    }, 200);
                 }
             }
 
@@ -1278,6 +1284,12 @@ export function renderGridItemContent(domElement, config) {
                     generatedWrapper = createVirtualWidgetDOM(vw, config.id || `container_${Date.now()}`, options);
                     if (generatedWrapper) {
                         generatedWrapper.dataset.virtualWidgetId = virtualKey;
+                        // Mark as new for animation
+                        generatedWrapper.classList.add('gw-widget-new');
+                        // Remove the animation class after animation completes to prevent re-animation on updates
+                        setTimeout(() => {
+                            generatedWrapper.classList.remove('gw-widget-new');
+                        }, 200);
                     }
                 }
 

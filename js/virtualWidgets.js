@@ -44,11 +44,28 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
         wrapper.appendChild(label);
     }
 
-    // Create widget-specific content
+    // Create widget-specific content with value change handler
     const contentDiv = document.createElement('div');
     contentDiv.className = 'gw-virtual-content';
     
-    const widgetElement = createWidgetContent(virtualWidget, options);
+    // Create value change handler that saves state
+    const handleValueChange = (newValue) => {
+        virtualWidget.value = newValue;
+        virtualWidgetStates.set(virtualWidget.id, newValue);
+        
+        // Sync with connected real widget if exists
+        if (virtualWidget.connection) {
+            wrapper.classList.add('is-syncing');
+            syncWithRealWidget(virtualWidget).then(() => {
+                setTimeout(() => wrapper.classList.remove('is-syncing'), 300);
+            });
+        }
+        
+        // Broadcast update
+        broadcastWidgetUpdate(`virtual_${virtualWidget.id}`, null, newValue);
+    };
+    
+    const widgetElement = createWidgetContent(virtualWidget, options, handleValueChange);
     if (widgetElement) {
         contentDiv.appendChild(widgetElement);
     }
@@ -58,7 +75,7 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     // Apply custom styles
     applyVirtualWidgetStyles(wrapper, virtualWidget, options);
 
-    // Setup event listeners for value changes
+    // Setup event listeners for value changes (for widgets that don't use the handler)
     setupVirtualWidgetListeners(wrapper, virtualWidget, options);
 
     return wrapper;
@@ -67,51 +84,51 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
 /**
  * Create widget-specific content based on type
  */
-function createWidgetContent(virtualWidget, options = {}) {
+function createWidgetContent(virtualWidget, options = {}, onValueChange) {
     const { type, config, value } = virtualWidget;
 
     switch (type) {
         case SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER:
         case SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER:
-            return createNumberWidget(virtualWidget, options);
+            return createNumberWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT:
-            return createTextWidget(virtualWidget, options);
+            return createTextWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE:
-            return createToggleWidget(virtualWidget, options);
+            return createToggleWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN:
-            return createDropdownWidget(virtualWidget, options);
+            return createDropdownWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON:
-            return createButtonWidget(virtualWidget, options);
+            return createButtonWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY:
-            return createDisplayWidget(virtualWidget, options);
+            return createDisplayWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE:
-            return createImageWidget(virtualWidget, options);
+            return createImageWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_CHART:
-            return createChartWidget(virtualWidget, options);
+            return createChartWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS:
-            return createProgressWidget(virtualWidget, options);
+            return createProgressWidget(virtualWidget, options, onValueChange);
 
         case SPECIAL_WIDGET_TYPES.CUSTOM_HTML:
-            return createCustomHTMLWidget(virtualWidget, options);
+            return createCustomHTMLWidget(virtualWidget, options, onValueChange);
 
         default:
             console.warn(`[Virtual Widget] Unknown type: ${type}`);
-            return createDefaultWidget(virtualWidget, options);
+            return createDefaultWidget(virtualWidget, options, onValueChange);
     }
 }
 
 /**
  * Number/Slider widget
  */
-function createNumberWidget(virtualWidget, options) {
+function createNumberWidget(virtualWidget, options, onValueChange) {
     const container = document.createElement('div');
     container.className = 'vw-number-container';
 
@@ -149,15 +166,16 @@ function createNumberWidget(virtualWidget, options) {
         
         if (options.readOnly) slider.disabled = true;
 
-        // Sync between number and slider
-        input.oninput = () => {
-            slider.value = input.value;
-            virtualWidget.value = parseFloat(input.value);
+        // Sync between number and slider with state saving
+        const syncValues = (newValue) => {
+            input.value = newValue;
+            slider.value = newValue;
+            virtualWidget.value = parseFloat(newValue);
+            if (onValueChange) onValueChange(parseFloat(newValue));
         };
-        slider.oninput = () => {
-            input.value = slider.value;
-            virtualWidget.value = parseFloat(slider.value);
-        };
+
+        input.oninput = () => syncValues(input.value);
+        slider.oninput = () => syncValues(slider.value);
 
         container.appendChild(slider);
     }
@@ -168,7 +186,7 @@ function createNumberWidget(virtualWidget, options) {
 /**
  * Text widget
  */
-function createTextWidget(virtualWidget, options) {
+function createTextWidget(virtualWidget, options, onValueChange) {
     const textarea = document.createElement('textarea');
     textarea.className = 'vw-text-input';
     textarea.value = virtualWidget.value ?? '';
@@ -183,13 +201,20 @@ function createTextWidget(virtualWidget, options) {
         textarea.rows = virtualWidget.config.rows;
     }
 
+    if (onValueChange) {
+        textarea.addEventListener('input', () => {
+            virtualWidget.value = textarea.value;
+            onValueChange(textarea.value);
+        });
+    }
+
     return textarea;
 }
 
 /**
  * Toggle widget
  */
-function createToggleWidget(virtualWidget, options) {
+function createToggleWidget(virtualWidget, options, onValueChange) {
     const toggleContainer = document.createElement('div');
     toggleContainer.className = 'vw-toggle-container';
 
@@ -210,13 +235,20 @@ function createToggleWidget(virtualWidget, options) {
     toggleContainer.appendChild(checkbox);
     toggleContainer.appendChild(label);
 
+    if (onValueChange) {
+        checkbox.addEventListener('change', () => {
+            virtualWidget.value = checkbox.checked;
+            onValueChange(checkbox.checked);
+        });
+    }
+
     return toggleContainer;
 }
 
 /**
  * Dropdown widget
  */
-function createDropdownWidget(virtualWidget, options) {
+function createDropdownWidget(virtualWidget, options, onValueChange) {
     const select = document.createElement('select');
     select.className = 'vw-dropdown';
 
@@ -243,13 +275,20 @@ function createDropdownWidget(virtualWidget, options) {
         select.disabled = true;
     }
 
+    if (onValueChange) {
+        select.addEventListener('change', () => {
+            virtualWidget.value = select.value;
+            onValueChange(select.value);
+        });
+    }
+
     return select;
 }
 
 /**
  * Button widget
  */
-function createButtonWidget(virtualWidget, options) {
+function createButtonWidget(virtualWidget, options, onValueChange) {
     const button = document.createElement('button');
     button.className = 'vw-button';
     button.textContent = virtualWidget.config.label || virtualWidget.name || 'Button';
@@ -262,13 +301,19 @@ function createButtonWidget(virtualWidget, options) {
         button.disabled = true;
     }
 
+    if (onValueChange) {
+        button.addEventListener('click', () => {
+            onValueChange({ type: 'click', timestamp: Date.now() });
+        });
+    }
+
     return button;
 }
 
 /**
  * Display widget (read-only value display)
  */
-function createDisplayWidget(virtualWidget, options) {
+function createDisplayWidget(virtualWidget, options, onValueChange) {
     const display = document.createElement('div');
     display.className = 'vw-display';
     display.textContent = formatValue(virtualWidget.value, virtualWidget.config.format);
@@ -316,7 +361,7 @@ function isImagePath(value) {
 /**
  * Image widget with dynamic node image support
  */
-function createImageWidget(virtualWidget, options) {
+function createImageWidget(virtualWidget, options, onValueChange) {
     const imgContainer = document.createElement('div');
     imgContainer.className = 'vw-image-container';
 
@@ -358,7 +403,7 @@ function createImageWidget(virtualWidget, options) {
 /**
  * Chart widget (placeholder for future chart library integration)
  */
-function createChartWidget(virtualWidget, options) {
+function createChartWidget(virtualWidget, options, onValueChange) {
     const chartContainer = document.createElement('div');
     chartContainer.className = 'vw-chart';
     chartContainer.innerHTML = '<div class="vw-chart-placeholder">📊 Chart Placeholder<br><small>Chart integration coming soon</small></div>';
@@ -368,7 +413,7 @@ function createChartWidget(virtualWidget, options) {
 /**
  * Progress widget
  */
-function createProgressWidget(virtualWidget, options) {
+function createProgressWidget(virtualWidget, options, onValueChange) {
     const progressContainer = document.createElement('div');
     progressContainer.className = 'vw-progress-container';
 
@@ -402,7 +447,7 @@ function createProgressWidget(virtualWidget, options) {
 /**
  * Custom HTML widget
  */
-function createCustomHTMLWidget(virtualWidget, options) {
+function createCustomHTMLWidget(virtualWidget, options, onValueChange) {
     const container = document.createElement('div');
     container.className = 'vw-custom-html';
     
@@ -425,7 +470,7 @@ function createCustomHTMLWidget(virtualWidget, options) {
 /**
  * Default widget fallback
  */
-function createDefaultWidget(virtualWidget, options) {
+function createDefaultWidget(virtualWidget, options, onValueChange) {
     const div = document.createElement('div');
     div.className = 'vw-default';
     div.textContent = `Virtual Widget: ${virtualWidget.type}\nValue: ${JSON.stringify(virtualWidget.value)}`;
@@ -487,6 +532,7 @@ function applyVirtualWidgetStyles(wrapper, virtualWidget, options) {
 
 /**
  * Setup event listeners for virtual widget value changes
+ * This is now a fallback for widgets that don't use the onValueChange handler
  */
 function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
     const input = wrapper.querySelector('input, textarea, select, button');
@@ -496,6 +542,9 @@ function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
     if (virtualWidget.connection) {
         wrapper.classList.add('is-connected');
     }
+
+    // Check if already has listener from createWidgetContent
+    if (input.dataset.hasVirtualListener) return;
 
     const emitChange = () => {
         // Update virtual widget value
@@ -537,6 +586,9 @@ function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
         input.oninput = emitChange;
         input.onchange = emitChange;
     }
+    
+    // Mark as having listener to avoid duplicates
+    input.dataset.hasVirtualListener = 'true';
 }
 
 /**

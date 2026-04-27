@@ -468,7 +468,8 @@
     display: flex; 
     flex-direction: column; 
     overflow: hidden !important; 
-    transition: all var(--a11-transition); 
+    /* Only transition height and transform for smooth collapse/expand, avoid 'all' to prevent twitching */
+    transition: height var(--a11-transition), transform var(--a11-transition); 
     position: relative; 
 }
 
@@ -496,7 +497,9 @@
     height: 100%; 
     min-height: 0; 
     padding: var(--a11-space-1); 
-    gap: var(--a11-space-1); 
+    gap: var(--a11-space-1);
+    /* Prevent content twitching during container open/close animations */
+    will-change: auto;
 }
 
 .grid-stack-item-content.collapsed { 
@@ -550,6 +553,8 @@
     /* Base special container styling */
     position: relative;
     overflow: hidden;
+    /* Only transition height for smooth collapse/expand, avoid 'all' to prevent twitching */
+    transition: height var(--a11-transition), transform var(--a11-transition);
 }
 
 .gw-container-special .gw-bar {

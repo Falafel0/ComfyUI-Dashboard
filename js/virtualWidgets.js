@@ -25,7 +25,7 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     wrapper.dataset.containerId = containerId;
     wrapper.dataset.widgetType = virtualWidget.type;
 
-    // Restore saved state if exists
+    // Restore saved state if exists (BEFORE creating content)
     if (virtualWidgetStates.has(virtualWidget.id)) {
         virtualWidget.value = virtualWidgetStates.get(virtualWidget.id);
     }
@@ -53,6 +53,11 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
         virtualWidget.value = newValue;
         virtualWidgetStates.set(virtualWidget.id, newValue);
         
+        // Also save to config for persistence across sessions
+        if (virtualWidget.config) {
+            virtualWidget.config.savedValue = newValue;
+        }
+        
         // Sync with connected real widget if exists
         if (virtualWidget.connection) {
             wrapper.classList.add('is-syncing');
@@ -64,6 +69,11 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
         // Broadcast update
         broadcastWidgetUpdate(`virtual_${virtualWidget.id}`, null, newValue);
     };
+    
+    // Ensure value is set before creating content
+    if (virtualWidget.config?.savedValue !== undefined && virtualWidget.value === undefined) {
+        virtualWidget.value = virtualWidget.config.savedValue;
+    }
     
     const widgetElement = createWidgetContent(virtualWidget, options, handleValueChange);
     if (widgetElement) {
@@ -1071,17 +1081,44 @@ export function updateVirtualWidgetValue(wrapper, newValue) {
         }
     }
     
+    const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
+    const widgetType = wrapper.dataset?.widgetType;
+    
+    // Handle button-type widgets with different appearances
+    if (widgetType === 'virtual_button') {
+        // Find the actual input element based on button type
+        const toggleInput = wrapper.querySelector('.vw-button-toggle-input');
+        const checkboxInput = wrapper.querySelector('.vw-button-checkbox-input');
+        const radioInput = wrapper.querySelector('.vw-button-radio-input');
+        const switchInput = wrapper.querySelector('.vw-button-switch-input');
+        
+        if (toggleInput) {
+            toggleInput.checked = !!newValue;
+        } else if (checkboxInput) {
+            checkboxInput.checked = !!newValue;
+        } else if (radioInput) {
+            radioInput.checked = !!newValue;
+        } else if (switchInput) {
+            switchInput.checked = !!newValue;
+        }
+        
+        // Also save to global state
+        if (virtualWidgetId) {
+            virtualWidgetStates.set(virtualWidgetId, newValue);
+        }
+        return;
+    }
+    
     const input = wrapper.querySelector('input, textarea, select');
     if (!input) return;
 
-    if (input.type === 'checkbox') {
+    if (input.type === 'checkbox' || input.type === 'radio') {
         input.checked = !!newValue;
     } else {
         input.value = newValue ?? '';
     }
     
     // Also save to global state for non-image widgets
-    const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
     if (virtualWidgetId) {
         virtualWidgetStates.set(virtualWidgetId, newValue);
     }

@@ -512,11 +512,24 @@ export function validateSpecialContainer(config) {
  * Serialize special container for storage
  */
 export function serializeSpecialContainer(config) {
+    // Merge current virtualWidgetStates into virtualWidgets before serialization
+    const virtualWidgetsToSave = (config.virtualWidgets || []).map(widget => {
+        const widgetCopy = { ...widget };
+        // If widget has a saved state in the Map, use it
+        if (virtualWidgetStates.has(widget.id)) {
+            widgetCopy.value = virtualWidgetStates.get(widget.id);
+            // Also save to config for persistence
+            if (!widgetCopy.config) widgetCopy.config = {};
+            widgetCopy.config.savedValue = virtualWidgetStates.get(widget.id);
+        }
+        return widgetCopy;
+    });
+    
     return JSON.parse(JSON.stringify({
         containerType: config.containerType,
         specialType: config.specialType,
         title: config.title,
-        virtualWidgets: config.virtualWidgets,
+        virtualWidgets: virtualWidgetsToSave,
         connections: config.connections,
         settings: config.settings,
         containerView: config.containerView,
@@ -539,10 +552,24 @@ export function deserializeSpecialContainer(data) {
         return null;
     }
     
+    // Restore virtual widget states from saved config.savedValue
+    const restoredWidgets = (data.virtualWidgets || []).map(widget => {
+        const widgetCopy = { ...widget };
+        // Try to restore value from config.savedValue first, then from widget.value
+        if (widget.config?.savedValue !== undefined) {
+            widgetCopy.value = widget.config.savedValue;
+            // Also populate the global state map
+            virtualWidgetStates.set(widget.id, widget.config.savedValue);
+        } else if (widget.value !== undefined) {
+            virtualWidgetStates.set(widget.id, widget.value);
+        }
+        return widgetCopy;
+    });
+    
     // Ensure all required fields exist
     const config = {
         ...data,
-        virtualWidgets: data.virtualWidgets || [],
+        virtualWidgets: restoredWidgets,
         connections: data.connections || [],
         settings: data.settings || {}
     };

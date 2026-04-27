@@ -43,9 +43,7 @@ export const SPECIAL_WIDGET_TYPES = {
 // Special button action types for enhanced functionality
 export const BUTTON_ACTION_TYPES = {
     LAUNCH_WORKFLOW: 'launch_workflow',        // Launch entire workflow
-    LAUNCH_NODE: 'launch_node',                // Execute workflow up to specific node only
-    BYPASS_NODE: 'bypass_node',                // Toggle bypass for a node
-    MUTE_NODE: 'mute_node',                    // Toggle mute for a node
+    LAUNCH_NODE: 'launch_node',                // Execute specific node only
     RESET_WIDGETS: 'reset_widgets',            // Reset all widgets in container
     SAVE_PRESET: 'save_preset',                // Save current state as preset
     LOAD_PRESET: 'load_preset',                // Load a preset
@@ -57,22 +55,6 @@ export const BUTTON_ACTION_TYPES = {
     IMPORT_CONFIG: 'import_config',            // Import container config
     TOGGLE_COLLAPSE: 'toggle_collapse',        // Toggle container collapse
     CUSTOM_SCRIPT: 'custom_script'             // Run custom JavaScript
-};
-
-// Button appearance/types for visual customization
-export const BUTTON_APPEARANCE_TYPES = {
-    BUTTON: 'button',              // Standard push button
-    TOGGLE: 'toggle',              // On/off toggle switch
-    CHECKBOX: 'checkbox',          // Checkbox style
-    RADIO: 'radio',                // Radio button
-    SWITCH: 'switch',              // Modern toggle switch
-    ICON: 'icon',                  // Icon-only button
-    ICON_TEXT: 'icon_text',        // Icon with text
-    PILL: 'pill',                  // Pill-shaped button
-    OUTLINE: 'outline',            // Outlined button
-    GHOST: 'ghost',                // Transparent background
-    DROPDOWN: 'dropdown',          // Dropdown menu button
-    MOMENTARY: 'momentary'         // Momentary press button
 };
 
 /**
@@ -191,9 +173,6 @@ export function createVirtualWidget(type, options = {}) {
         case SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON:
             baseWidget.config.label = 'Button';
             baseWidget.config.accentColor = '';
-            baseWidget.config.appearanceType = BUTTON_APPEARANCE_TYPES.BUTTON;
-            baseWidget.config.icon = '';
-            baseWidget.config.showLabel = true;
             baseWidget.actionConfig = {
                 actionType: BUTTON_ACTION_TYPES.CUSTOM_SCRIPT,
                 script: 'console.log("Button clicked!");',
@@ -643,12 +622,6 @@ export async function executeButtonAction(virtualWidget, containerConfig = null)
         case BUTTON_ACTION_TYPES.LAUNCH_NODE:
             return launchNode(targetNodeId);
 
-        case BUTTON_ACTION_TYPES.BYPASS_NODE:
-            return bypassNode(targetNodeId);
-
-        case BUTTON_ACTION_TYPES.MUTE_NODE:
-            return muteNode(targetNodeId);
-
         case BUTTON_ACTION_TYPES.RESET_WIDGETS:
             return resetContainerWidgets(containerConfig);
 
@@ -706,7 +679,7 @@ async function launchWorkflow() {
 }
 
 /**
- * Launch/execute workflow up to a specific node (executes only the path to that node)
+ * Launch/execute a specific node
  */
 async function launchNode(nodeId) {
     try {
@@ -714,147 +687,26 @@ async function launchNode(nodeId) {
             return { success: false, error: 'No target node specified' };
         }
         const { app } = await import("../../scripts/app.js");
-        const targetNode = app.graph.getNodeById(nodeId);
-        if (!targetNode) {
+        const node = app.graph.getNodeById(nodeId);
+        if (!node) {
             return { success: false, error: `Node #${nodeId} not found` };
         }
         
-        // Build execution path from start nodes to target node
-        // This executes only the branches leading to the target node
-        const executedNodes = new Set();
-        const nodesToExecute = [];
-        
-        // Find all nodes that are ancestors of the target node (upstream dependencies)
-        function findUpstreamNodes(node, visited = new Set()) {
-            if (visited.has(node.id)) return;
-            visited.add(node.id);
-            
-            // Get input links to find upstream nodes
-            if (node.inputs && Array.isArray(node.inputs)) {
-                for (const input of node.inputs) {
-                    if (input.link !== null && input.link !== undefined) {
-                        const link = app.graph.links[input.link];
-                        if (link) {
-                            const upstreamNode = app.graph.getNodeById(link.origin_id);
-                            if (upstreamNode) {
-                                findUpstreamNodes(upstreamNode, visited);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Add this node to execution list
-            nodesToExecute.push(node);
+        // Trigger node execution by calling its onExecute if available
+        if (node.onExecute) {
+            node.onExecute();
+            return { success: true, message: `Node #${nodeId} executed` };
         }
         
-        findUpstreamNodes(targetNode);
-        
-        // Execute nodes in order (upstream first, then target)
-        for (const node of nodesToExecute) {
-            if (!executedNodes.has(node.id)) {
-                if (node.onExecute) {
-                    try {
-                        node.onExecute();
-                        executedNodes.add(node.id);
-                    } catch (e) {
-                        console.warn(`[Special Container] Node ${node.id} execution warning:`, e.message);
-                    }
-                } else {
-                    executedNodes.add(node.id);
-                }
-            }
-        }
-        
-        if (executedNodes.size > 0) {
-            // Trigger canvas update
-            if (app.graph.setDirtyCanvas) {
-                app.graph.setDirtyCanvas(true, true);
-            }
-            return { 
-                success: true, 
-                message: `Executed ${executedNodes.size} node(s) up to Node #${nodeId}`,
-                executedCount: executedNodes.size
-            };
-        }
-        
-        // Fallback: queue prompt if no onExecute methods found
+        // Alternative: queue prompt with this node focused
         if (app.queuePrompt) {
             await app.queuePrompt(0);
-            return { success: true, message: `Workflow launched (target: Node #${nodeId})` };
+            return { success: true, message: `Workflow launched (includes Node #${nodeId})` };
         }
         
         return { success: false, error: 'Node does not support direct execution' };
     } catch (e) {
         console.error('[Special Container] Failed to launch node:', e);
-        return { success: false, error: e.message };
-    }
-}
-
-/**
- * Toggle bypass state for a node
- */
-async function bypassNode(nodeId) {
-    try {
-        if (!nodeId) {
-            return { success: false, error: 'No target node specified' };
-        }
-        const { app } = await import("../../scripts/app.js");
-        const node = app.graph.getNodeById(nodeId);
-        if (!node) {
-            return { success: false, error: `Node #${nodeId} not found` };
-        }
-        
-        // Toggle bypass mode (ComfyUI standard approach)
-        const isBypassed = node.mode === 4; // Mode 4 = bypass in ComfyUI
-        node.mode = isBypassed ? 0 : 4; // 0 = always, 4 = bypass
-        
-        // Update canvas
-        if (app.graph.setDirtyCanvas) {
-            app.graph.setDirtyCanvas(true, true);
-        }
-        
-        return { 
-            success: true, 
-            message: `Node #${nodeId} ${isBypassed ? 'unbypassed' : 'bypassed'}`,
-            isBypassed: !isBypassed
-        };
-    } catch (e) {
-        console.error('[Special Container] Failed to toggle bypass:', e);
-        return { success: false, error: e.message };
-    }
-}
-
-/**
- * Toggle mute state for a node
- */
-async function muteNode(nodeId) {
-    try {
-        if (!nodeId) {
-            return { success: false, error: 'No target node specified' };
-        }
-        const { app } = await import("../../scripts/app.js");
-        const node = app.graph.getNodeById(nodeId);
-        if (!node) {
-            return { success: false, error: `Node #${nodeId} not found` };
-        }
-        
-        // Toggle mute mode (ComfyUI standard approach)
-        const isMuted = node.mode === 2; // Mode 2 = muted in ComfyUI
-        node.mode = isMuted ? 0 : 2; // 0 = always, 2 = muted
-        
-        // Update canvas
-        if (app.graph.setDirtyCanvas) {
-            app.graph.setDirtyCanvas(true, true);
-        }
-        
-        return { 
-            success: true, 
-            message: `Node #${nodeId} ${isMuted ? 'unmuted' : 'muted'}`,
-            isMuted: !isMuted
-        };
-    } catch (e) {
-        console.error('[Special Container] Failed to toggle mute:', e);
         return { success: false, error: e.message };
     }
 }

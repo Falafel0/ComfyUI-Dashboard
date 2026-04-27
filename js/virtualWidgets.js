@@ -4,7 +4,7 @@
  */
 
 import { state, broadcastWidgetUpdate } from "./state.js";
-import { SPECIAL_WIDGET_TYPES, BUTTON_APPEARANCE_TYPES, virtualWidgetStates } from "./specialContainers.js";
+import { SPECIAL_WIDGET_TYPES, virtualWidgetStates } from "./specialContainers.js";
 
 /**
  * Create DOM element for a virtual widget
@@ -313,12 +313,9 @@ function createDropdownWidget(virtualWidget, options, onValueChange) {
  * Button widget with enhanced action support
  */
 function createButtonWidget(virtualWidget, options, onValueChange) {
-    const { config, actionConfig } = virtualWidget;
-    const appearanceType = config.appearanceType || BUTTON_APPEARANCE_TYPES.BUTTON;
-    const label = config.label || virtualWidget.name || 'Button';
-    const icon = config.icon || '';
-    const showLabel = config.showLabel !== false;
-    const accentColor = config.accentColor || '#ea580c';
+    const button = document.createElement('button');
+    button.className = 'vw-button';
+    button.textContent = virtualWidget.config.label || virtualWidget.name || 'Button';
     
     let button;
     
@@ -495,61 +492,46 @@ function createButtonWidget(virtualWidget, options, onValueChange) {
     if (accentColor && ['button', 'pill', 'outline', 'ghost', 'icon_text', 'momentary'].includes(appearanceType)) {
         button.style.backgroundColor = accentColor;
     }
-    
+
     if (options.readOnly) {
-        if (button.tagName === 'BUTTON') {
-            button.disabled = true;
-        } else {
-            button.style.pointerEvents = 'none';
-            button.style.opacity = '0.6';
-        }
+        button.disabled = true;
+    }
+
+    if (onValueChange) {
+        button.addEventListener('click', async () => {
+            // Execute button action if configured
+            if (virtualWidget.actionConfig) {
+                try {
+                    const { executeButtonAction } = await import('./specialContainers.js');
+                    const containerId = button.closest('.gw-widget-wrapper')?.dataset?.containerId;
+                    
+                    // Get container config from state
+                    let containerConfig = null;
+                    if (containerId && window.appData?.gridConfig?.items) {
+                        containerConfig = window.appData.gridConfig.items.find(
+                            item => item.id === containerId || item.config?.id === containerId
+                        )?.config;
+                    }
+                    
+                    const result = await executeButtonAction(virtualWidget, containerConfig);
+                    console.log('[Virtual Button] Action result:', result);
+                    
+                    // Show feedback if available
+                    if (result?.message) {
+                        showButtonFeedback(button, result.success ? '✓ ' + result.message : '✗ ' + result.error);
+                    }
+                } catch (e) {
+                    console.error('[Virtual Button] Action execution failed:', e);
+                    showButtonFeedback(button, '✗ Error: ' + e.message);
+                }
+            }
+            
+            // Also trigger the standard value change callback
+            onValueChange({ type: 'click', timestamp: Date.now() });
+        });
     }
 
     return button;
-}
-
-/**
- * Attach click handler to button element
- */
-async function attachClickHandler(button, virtualWidget, onValueChange) {
-    button.addEventListener('click', async () => {
-        await handleButtonClick(virtualWidget, button, onValueChange);
-    });
-}
-
-/**
- * Handle button click and execute action
- */
-async function handleButtonClick(virtualWidget, button, onValueChange) {
-    // Execute button action if configured
-    if (virtualWidget.actionConfig) {
-        try {
-            const { executeButtonAction } = await import('./specialContainers.js');
-            const containerId = button.closest('.gw-widget-wrapper')?.dataset?.containerId;
-            
-            // Get container config from state
-            let containerConfig = null;
-            if (containerId && window.appData?.gridConfig?.items) {
-                containerConfig = window.appData.gridConfig.items.find(
-                    item => item.id === containerId || item.config?.id === containerId
-                )?.config;
-            }
-            
-            const result = await executeButtonAction(virtualWidget, containerConfig);
-            console.log('[Virtual Button] Action result:', result);
-            
-            // Show feedback if available
-            if (result?.message) {
-                showButtonFeedback(button, result.success ? '✓ ' + result.message : '✗ ' + result.error);
-            }
-        } catch (e) {
-            console.error('[Virtual Button] Action execution failed:', e);
-            showButtonFeedback(button, '✗ Error: ' + e.message);
-        }
-    }
-    
-    // Also trigger the standard value change callback
-    onValueChange({ type: 'click', timestamp: Date.now() });
 }
 
 /**

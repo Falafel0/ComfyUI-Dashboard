@@ -252,14 +252,38 @@ function createDropdownWidget(virtualWidget, options, onValueChange) {
     const select = document.createElement('select');
     select.className = 'vw-dropdown';
 
+    // Parse aliases if provided
+    let aliases = {};
+    if (virtualWidget.config.aliases) {
+        try {
+            aliases = typeof virtualWidget.config.aliases === 'string' 
+                ? JSON.parse(virtualWidget.config.aliases) 
+                : virtualWidget.config.aliases;
+        } catch (e) {
+            console.error('Invalid aliases JSON for dropdown', virtualWidget.id, e);
+            aliases = {};
+        }
+    }
+
     // Add empty option
     const emptyOpt = document.createElement('option');
     emptyOpt.value = '';
     emptyOpt.textContent = 'Select...';
     select.appendChild(emptyOpt);
 
-    // Add options
-    if (virtualWidget.config.options && Array.isArray(virtualWidget.config.options)) {
+    // Build options from aliases if available, otherwise from config.options
+    if (Object.keys(aliases).length > 0) {
+        // Use aliases: key = display label, value = internal value
+        for (const [label, val] of Object.entries(aliases)) {
+            const option = document.createElement('option');
+            option.value = String(val);
+            option.textContent = label;
+            if (virtualWidget.value !== null && virtualWidget.value !== undefined && String(virtualWidget.value) === String(val)) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        }
+    } else if (virtualWidget.config.options && Array.isArray(virtualWidget.config.options)) {
         virtualWidget.config.options.forEach(opt => {
             const option = document.createElement('option');
             option.value = typeof opt === 'object' ? opt.value : opt;

@@ -44,6 +44,11 @@ export const SPECIAL_WIDGET_TYPES = {
 export const BUTTON_ACTION_TYPES = {
     LAUNCH_WORKFLOW: 'launch_workflow',        // Launch entire workflow
     LAUNCH_NODE: 'launch_node',                // Execute specific node only
+    LAUNCH_TO_NODE: 'launch_to_node',          // Launch workflow ONLY up to target node
+    BYPASS_NODES: 'bypass_nodes',              // Bypass specific nodes
+    MUTE_NODES: 'mute_nodes',                  // Mute (disable) specific nodes
+    TOGGLE_BYPASS: 'toggle_bypass',            // Toggle bypass state
+    TOGGLE_MUTE: 'toggle_mute',                // Toggle mute state
     RESET_WIDGETS: 'reset_widgets',            // Reset all widgets in container
     SAVE_PRESET: 'save_preset',                // Save current state as preset
     LOAD_PRESET: 'load_preset',                // Load a preset
@@ -173,12 +178,14 @@ export function createVirtualWidget(type, options = {}) {
         case SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON:
             baseWidget.config.label = 'Button';
             baseWidget.config.accentColor = '';
+            baseWidget.config.buttonType = 'button'; // button, toggle, checkbox, radio, switch
             baseWidget.actionConfig = {
                 actionType: BUTTON_ACTION_TYPES.CUSTOM_SCRIPT,
                 script: 'console.log("Button clicked!");',
                 targetNodeId: null,
                 presetId: null,
-                confirmBeforeExec: false
+                confirmBeforeExec: false,
+                targetNodes: [] // For bypass/mute actions
             };
             break;
         case SPECIAL_WIDGET_TYPES.CUSTOM_HTML:
@@ -622,6 +629,21 @@ export async function executeButtonAction(virtualWidget, containerConfig = null)
         case BUTTON_ACTION_TYPES.LAUNCH_NODE:
             return launchNode(targetNodeId);
 
+        case BUTTON_ACTION_TYPES.LAUNCH_TO_NODE:
+            return launchToNode(targetNodeId);
+
+        case BUTTON_ACTION_TYPES.BYPASS_NODES:
+            return bypassNodes(virtualWidget.actionConfig.targetNodes || []);
+
+        case BUTTON_ACTION_TYPES.MUTE_NODES:
+            return muteNodes(virtualWidget.actionConfig.targetNodes || []);
+
+        case BUTTON_ACTION_TYPES.TOGGLE_BYPASS:
+            return toggleBypass(virtualWidget.actionConfig.targetNodes || []);
+
+        case BUTTON_ACTION_TYPES.TOGGLE_MUTE:
+            return toggleMute(virtualWidget.actionConfig.targetNodes || []);
+
         case BUTTON_ACTION_TYPES.RESET_WIDGETS:
             return resetContainerWidgets(containerConfig);
 
@@ -707,6 +729,238 @@ async function launchNode(nodeId) {
         return { success: false, error: 'Node does not support direct execution' };
     } catch (e) {
         console.error('[Special Container] Failed to launch node:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Launch workflow ONLY up to the target node (executes all nodes leading to target)
+ * Uses ComfyUI's built-in node execution with target node focus
+ */
+async function launchToNode(targetNodeId) {
+    try {
+        if (!targetNodeId) {
+            return { success: false, error: 'No target node specified' };
+        }
+        const { app } = await import("../../scripts/app.js");
+        const node = app.graph.getNodeById(targetNodeId);
+        if (!node) {
+            return { success: false, error: `Node #${targetNodeId} not found` };
+        }
+        
+        // Find all upstream nodes that feed into the target node
+        const upstreamNodes = findUpstreamNodes(node);
+        
+        // Build a graph for execution up to target node
+        // This is a simplified approach - in practice you'd need to use ComfyUI's execution system
+        if (app.queuePrompt) {
+            // Queue prompt normally but highlight the path to target
+            // For true "up to node" execution, we need to temporarily disable downstream nodes
+            const downstreamNodes = findDownstreamNodes(node);
+            
+            // Store original modes
+            const originalModes = new Map();
+            downstreamNodes.forEach(n => {
+                originalModes.set(n.id, n.mode);
+                n.mode = 2; // Mute downstream nodes
+            });
+            
+            try {
+                await app.queuePrompt(0);
+                return { 
+                    success: true, 
+                    message: `Workflow executed up to Node #${targetNodeId}`,
+                    executedCount: upstreamNodes.length + 1
+                };
+            } finally {
+                // Restore original modes after execution
+                setTimeout(() => {
+                    downstreamNodes.forEach(n => {
+                        const origMode = originalModes.get(n.id);
+                        if (origMode !== undefined) n.mode = origMode;
+                    });
+                    app.graph.setDirtyCanvas(true, true);
+                }, 100);
+            }
+        }
+        
+        return { success: false, error: 'Queue prompt not available' };
+    } catch (e) {
+        console.error('[Special Container] Failed to launch to node:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Find all upstream nodes that feed into the given node
+ */
+function findUpstreamNodes(targetNode, visited = new Set()) {
+    const result = [];
+    if (!targetNode || visited.has(targetNode.id)) return result;
+    visited.add(targetNode.id);
+    
+    // Check all inputs
+    if (targetNode.inputs) {
+        targetNode.inputs.forEach(input => {
+            if (input.link) {
+                const { app } = window;
+                if (app?.graph) {
+                    const link = app.graph.links.get(input.link);
+                    if (link) {
+                        const sourceNode = app.graph.getNodeById(link.origin_id);
+                        if (sourceNode) {
+                            result.push(sourceNode);
+                            result.push(...findUpstreamNodes(sourceNode, visited));
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    return result;
+}
+
+/**
+ * Find all downstream nodes that receive output from the given node
+ */
+function findDownstreamNodes(sourceNode, visited = new Set()) {
+    const result = [];
+    if (!sourceNode || visited.has(sourceNode.id)) return result;
+    visited.add(sourceNode.id);
+    
+    // Check all outputs and their connections
+    if (sourceNode.outputs) {
+        sourceNode.outputs.forEach(output => {
+            if (output.links) {
+                const { app } = window;
+                if (app?.graph) {
+                    output.links.forEach(linkId => {
+                        const link = app.graph.links.get(linkId);
+                        if (link) {
+                            const targetNode = app.graph.getNodeById(link.target_id);
+                            if (targetNode) {
+                                result.push(targetNode);
+                                result.push(...findDownstreamNodes(targetNode, visited));
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+    
+    return result;
+}
+
+/**
+ * Bypass specific nodes (set mode to 4 - purple bypass)
+ */
+async function bypassNodes(nodeIds) {
+    try {
+        const { app } = await import("../../scripts/app.js");
+        const affectedNodes = [];
+        
+        nodeIds.forEach(id => {
+            const node = app.graph.getNodeById(id);
+            if (node) {
+                node.mode = 4; // Bypass mode
+                affectedNodes.push(id);
+            }
+        });
+        
+        app.graph.setDirtyCanvas(true, true);
+        return { 
+            success: true, 
+            message: `Bypassed ${affectedNodes.length} node(s)`,
+            affectedNodes
+        };
+    } catch (e) {
+        console.error('[Special Container] Failed to bypass nodes:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Mute specific nodes (set mode to 2 - red mute)
+ */
+async function muteNodes(nodeIds) {
+    try {
+        const { app } = await import("../../scripts/app.js");
+        const affectedNodes = [];
+        
+        nodeIds.forEach(id => {
+            const node = app.graph.getNodeById(id);
+            if (node) {
+                node.mode = 2; // Mute mode
+                affectedNodes.push(id);
+            }
+        });
+        
+        app.graph.setDirtyCanvas(true, true);
+        return { 
+            success: true, 
+            message: `Muted ${affectedNodes.length} node(s)`,
+            affectedNodes
+        };
+    } catch (e) {
+        console.error('[Special Container] Failed to mute nodes:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Toggle bypass state for specific nodes
+ */
+async function toggleBypass(nodeIds) {
+    try {
+        const { app } = await import("../../scripts/app.js");
+        const affectedNodes = [];
+        
+        nodeIds.forEach(id => {
+            const node = app.graph.getNodeById(id);
+            if (node) {
+                node.mode = node.mode === 4 ? 0 : 4; // Toggle between normal and bypass
+                affectedNodes.push({ id, newMode: node.mode });
+            }
+        });
+        
+        app.graph.setDirtyCanvas(true, true);
+        return { 
+            success: true, 
+            message: `Toggled bypass for ${affectedNodes.length} node(s)`,
+            affectedNodes
+        };
+    } catch (e) {
+        console.error('[Special Container] Failed to toggle bypass:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Toggle mute state for specific nodes
+ */
+async function toggleMute(nodeIds) {
+    try {
+        const { app } = await import("../../scripts/app.js");
+        const affectedNodes = [];
+        
+        nodeIds.forEach(id => {
+            const node = app.graph.getNodeById(id);
+            if (node) {
+                node.mode = node.mode === 2 ? 0 : 2; // Toggle between normal and mute
+                affectedNodes.push({ id, newMode: node.mode });
+            }
+        });
+        
+        app.graph.setDirtyCanvas(true, true);
+        return { 
+            success: true, 
+            message: `Toggled mute for ${affectedNodes.length} node(s)`,
+            affectedNodes
+        };
+    } catch (e) {
+        console.error('[Special Container] Failed to toggle mute:', e);
         return { success: false, error: e.message };
     }
 }

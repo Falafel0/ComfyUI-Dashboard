@@ -544,15 +544,97 @@
     border-radius: 0 !important;
 }
 
-/* Special containers - placeholder for future development */
-/* These containers have autonomous behavior different from standard ones */
+/* Special containers - autonomous containers with virtual widgets */
+/* These containers have independent behavior different from standard ones */
 .gw-container-special {
-    /* Placeholder: Future special container styles */
-    /* Will support independent positioning, custom rendering, etc. */
+    /* Base special container styling */
+    position: relative;
+    overflow: hidden;
 }
 
 .gw-container-special .gw-bar {
-    /* Placeholder: Special header bar styling */
+    /* Special header bar with enhanced controls */
+    background: linear-gradient(90deg, rgba(234,88,12,0.15) 0%, transparent 100%);
+    border-left: 3px solid var(--a11-accent);
+}
+
+.gw-container-special .gw-body {
+    /* Special body layout for virtual widgets */
+    display: grid;
+    gap: var(--a11-space-2);
+}
+
+/* Special container type-specific styles */
+.gw-container-special[data-special-type="dashboard"] {
+    /* Dashboard layout with widget grid */
+}
+
+.gw-container-special[data-special-type="control_panel"] {
+    /* Control panel with quick actions */
+}
+
+.gw-container-special[data-special-type="monitor"] {
+    /* Monitoring display with real-time updates */
+}
+
+.gw-container-special[data-special-type="form"] {
+    /* Form builder layout */
+}
+
+.gw-container-special[data-special-type="gallery"] {
+    /* Gallery grid layout */
+}
+
+/* Virtual widget styling */
+.gw-virtual-widget {
+    padding: var(--a11-space-2);
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--a11-border);
+    border-radius: var(--a11-radius-sm);
+    transition: all var(--a11-transition-fast);
+}
+
+.gw-virtual-widget:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--a11-accent);
+}
+
+.gw-virtual-widget.connected {
+    border-style: solid;
+    border-color: var(--a11-accent);
+}
+
+.gw-virtual-widget .vw-label {
+    font-size: var(--a11-text-xs);
+    color: var(--a11-desc);
+    margin-bottom: var(--a11-space-1);
+}
+
+.gw-virtual-widget .vw-value {
+    font-size: var(--a11-text-base);
+    color: var(--a11-text);
+}
+
+.gw-virtual-widget .vw-connection-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--a11-desc);
+}
+
+.gw-virtual-widget.connected .vw-connection-indicator {
+    background: var(--a11-success);
+    box-shadow: 0 0 6px var(--a11-success);
+}
+
+/* Seamless mode also applies to special containers */
+.seamless-mode .gw-container-special {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
 }
 
 .gw-view-flat { 

@@ -310,9 +310,33 @@ function createDropdownWidget(virtualWidget, options, onValueChange) {
 }
 
 /**
- * Button widget with enhanced action support
+ * Button widget with enhanced action support and multiple appearance types
  */
 function createButtonWidget(virtualWidget, options, onValueChange) {
+    const buttonType = virtualWidget.config.buttonType || 'button';
+    
+    // Different appearance types for buttons
+    switch (buttonType) {
+        case 'toggle':
+            return createButtonAsToggle(virtualWidget, options, onValueChange);
+        case 'checkbox':
+            return createButtonAsCheckbox(virtualWidget, options, onValueChange);
+        case 'radio':
+            return createButtonAsRadio(virtualWidget, options, onValueChange);
+        case 'switch':
+            return createButtonAsSwitch(virtualWidget, options, onValueChange);
+        case 'icon':
+            return createButtonAsIcon(virtualWidget, options, onValueChange);
+        case 'button':
+        default:
+            return createStandardButton(virtualWidget, options, onValueChange);
+    }
+}
+
+/**
+ * Standard button appearance
+ */
+function createStandardButton(virtualWidget, options, onValueChange) {
     const button = document.createElement('button');
     button.className = 'vw-button';
     button.textContent = virtualWidget.config.label || virtualWidget.name || 'Button';
@@ -327,39 +351,252 @@ function createButtonWidget(virtualWidget, options, onValueChange) {
 
     if (onValueChange) {
         button.addEventListener('click', async () => {
-            // Execute button action if configured
-            if (virtualWidget.actionConfig) {
-                try {
-                    const { executeButtonAction } = await import('./specialContainers.js');
-                    const containerId = button.closest('.gw-widget-wrapper')?.dataset?.containerId;
-                    
-                    // Get container config from state
-                    let containerConfig = null;
-                    if (containerId && window.appData?.gridConfig?.items) {
-                        containerConfig = window.appData.gridConfig.items.find(
-                            item => item.id === containerId || item.config?.id === containerId
-                        )?.config;
-                    }
-                    
-                    const result = await executeButtonAction(virtualWidget, containerConfig);
-                    console.log('[Virtual Button] Action result:', result);
-                    
-                    // Show feedback if available
-                    if (result?.message) {
-                        showButtonFeedback(button, result.success ? '✓ ' + result.message : '✗ ' + result.error);
-                    }
-                } catch (e) {
-                    console.error('[Virtual Button] Action execution failed:', e);
-                    showButtonFeedback(button, '✗ Error: ' + e.message);
-                }
-            }
-            
-            // Also trigger the standard value change callback
-            onValueChange({ type: 'click', timestamp: Date.now() });
+            await executeVirtualButtonAction(button, virtualWidget, onValueChange);
         });
     }
 
     return button;
+}
+
+/**
+ * Toggle-style button (ON/OFF state)
+ */
+function createButtonAsToggle(virtualWidget, options, onValueChange) {
+    const toggleContainer = document.createElement('div');
+    toggleContainer.className = 'vw-button-toggle-container';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'vw-button-toggle-input';
+    checkbox.id = `vw-btn-toggle-${virtualWidget.id}`;
+    checkbox.checked = !!virtualWidget.value;
+    
+    if (options.readOnly) {
+        checkbox.disabled = true;
+    }
+    
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.className = 'vw-button-toggle-label';
+    label.textContent = virtualWidget.config.label || virtualWidget.name || 'Toggle';
+    
+    if (virtualWidget.config.accentColor) {
+        label.style.setProperty('--toggle-accent', virtualWidget.config.accentColor);
+    }
+    
+    toggleContainer.appendChild(checkbox);
+    toggleContainer.appendChild(label);
+    
+    if (onValueChange) {
+        checkbox.addEventListener('change', async () => {
+            virtualWidget.value = checkbox.checked;
+            if (checkbox.checked) {
+                await executeVirtualButtonAction(label, virtualWidget, onValueChange);
+            }
+            onValueChange({ type: 'toggle', value: checkbox.checked, timestamp: Date.now() });
+        });
+    }
+    
+    return toggleContainer;
+}
+
+/**
+ * Checkbox-style button
+ */
+function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'vw-button-checkbox-container';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'vw-button-checkbox-input';
+    checkbox.id = `vw-btn-checkbox-${virtualWidget.id}`;
+    checkbox.checked = !!virtualWidget.value;
+    
+    if (options.readOnly) {
+        checkbox.disabled = true;
+    }
+    
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.className = 'vw-button-checkbox-label';
+    label.textContent = virtualWidget.config.label || virtualWidget.name || 'Click me';
+    
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(label);
+    
+    if (onValueChange) {
+        checkbox.addEventListener('change', async () => {
+            virtualWidget.value = checkbox.checked;
+            if (checkbox.checked) {
+                await executeVirtualButtonAction(label, virtualWidget, onValueChange);
+                // Auto-uncheck after action for momentary button behavior
+                setTimeout(() => {
+                    checkbox.checked = false;
+                    virtualWidget.value = false;
+                    onValueChange({ type: 'click', value: false, timestamp: Date.now() });
+                }, 200);
+            }
+        });
+    }
+    
+    return checkboxContainer;
+}
+
+/**
+ * Radio-style button
+ */
+function createButtonAsRadio(virtualWidget, options, onValueChange) {
+    const radioContainer = document.createElement('div');
+    radioContainer.className = 'vw-button-radio-container';
+    
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.className = 'vw-button-radio-input';
+    radio.id = `vw-btn-radio-${virtualWidget.id}`;
+    radio.name = `vw-btn-radio-group-${virtualWidget.containerId || 'default'}`;
+    radio.checked = !!virtualWidget.value;
+    
+    if (options.readOnly) {
+        radio.disabled = true;
+    }
+    
+    const label = document.createElement('label');
+    label.htmlFor = radio.id;
+    label.className = 'vw-button-radio-label';
+    label.textContent = virtualWidget.config.label || virtualWidget.name || 'Option';
+    
+    radioContainer.appendChild(radio);
+    radioContainer.appendChild(label);
+    
+    if (onValueChange) {
+        radio.addEventListener('change', async () => {
+            virtualWidget.value = radio.checked;
+            if (radio.checked) {
+                await executeVirtualButtonAction(label, virtualWidget, onValueChange);
+            }
+            onValueChange({ type: 'radio', value: radio.checked, timestamp: Date.now() });
+        });
+    }
+    
+    return radioContainer;
+}
+
+/**
+ * Switch-style button (modern iOS-style switch)
+ */
+function createButtonAsSwitch(virtualWidget, options, onValueChange) {
+    const switchContainer = document.createElement('div');
+    switchContainer.className = 'vw-button-switch-container';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'vw-button-switch-input';
+    checkbox.id = `vw-btn-switch-${virtualWidget.id}`;
+    checkbox.checked = !!virtualWidget.value;
+    
+    if (options.readOnly) {
+        checkbox.disabled = true;
+    }
+    
+    const switchLabel = document.createElement('label');
+    switchLabel.htmlFor = checkbox.id;
+    switchLabel.className = 'vw-button-switch-label';
+    
+    const slider = document.createElement('span');
+    slider.className = 'vw-button-switch-slider';
+    
+    if (virtualWidget.config.accentColor) {
+        slider.style.setProperty('--switch-accent', virtualWidget.config.accentColor);
+    }
+    
+    const textSpan = document.createElement('span');
+    textSpan.className = 'vw-button-switch-text';
+    textSpan.textContent = virtualWidget.config.label || virtualWidget.name || '';
+    
+    switchLabel.appendChild(slider);
+    if (textSpan.textContent) {
+        switchLabel.appendChild(textSpan);
+    }
+    
+    switchContainer.appendChild(checkbox);
+    switchContainer.appendChild(switchLabel);
+    
+    if (onValueChange) {
+        checkbox.addEventListener('change', async () => {
+            virtualWidget.value = checkbox.checked;
+            if (checkbox.checked) {
+                await executeVirtualButtonAction(switchLabel, virtualWidget, onValueChange);
+            }
+            onValueChange({ type: 'switch', value: checkbox.checked, timestamp: Date.now() });
+        });
+    }
+    
+    return switchContainer;
+}
+
+/**
+ * Icon-style button
+ */
+function createButtonAsIcon(virtualWidget, options, onValueChange) {
+    const iconButton = document.createElement('button');
+    iconButton.className = 'vw-button-icon';
+    
+    // Support for icon text or emoji
+    const iconContent = virtualWidget.config.icon || virtualWidget.config.label || '⚡';
+    iconButton.textContent = iconContent;
+    iconButton.title = virtualWidget.name || 'Icon Button';
+    
+    if (virtualWidget.config.accentColor) {
+        iconButton.style.color = virtualWidget.config.accentColor;
+    }
+    
+    if (options.readOnly) {
+        iconButton.disabled = true;
+    }
+    
+    if (onValueChange) {
+        iconButton.addEventListener('click', async () => {
+            await executeVirtualButtonAction(iconButton, virtualWidget, onValueChange);
+        });
+    }
+    
+    return iconButton;
+}
+
+/**
+ * Execute virtual button action (shared function)
+ */
+async function executeVirtualButtonAction(buttonElement, virtualWidget, onValueChange) {
+    // Execute button action if configured
+    if (virtualWidget.actionConfig) {
+        try {
+            const { executeButtonAction } = await import('./specialContainers.js');
+            const containerId = buttonElement.closest('.gw-widget-wrapper')?.dataset?.containerId;
+            
+            // Get container config from state
+            let containerConfig = null;
+            if (containerId && window.appData?.gridConfig?.items) {
+                containerConfig = window.appData.gridConfig.items.find(
+                    item => item.id === containerId || item.config?.id === containerId
+                )?.config;
+            }
+            
+            const result = await executeButtonAction(virtualWidget, containerConfig);
+            console.log('[Virtual Button] Action result:', result);
+            
+            // Show feedback if available
+            if (result?.message) {
+                showButtonFeedback(buttonElement, result.success ? '✓ ' + result.message : '✗ ' + result.error);
+            }
+        } catch (e) {
+            console.error('[Virtual Button] Action execution failed:', e);
+            showButtonFeedback(buttonElement, '✗ Error: ' + e.message);
+        }
+    }
+    
+    // Also trigger the standard value change callback
+    onValueChange({ type: 'click', timestamp: Date.now() });
 }
 
 /**

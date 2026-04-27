@@ -1,1 +1,29 @@
-(js/specialContainerEditor.js, js/specialContainers.js)
+# Examples 1:
+# Project with only source/config files - no build artifacts, dependencies, or temp files
+
+# Example 2 (Project with artifacts):
+# *.log
+# #Compiled and build artifacts
+# *.pyc
+# pycache/
+# *.o
+# *.obj
+# dist/
+# build/
+# #Dependencies
+# .venv/
+# venv/
+# node_modules/
+# #Logs and temp files
+# *.log
+# *.tmp
+# *.swp
+# #Environment
+# .env
+# .env.local
+# .env.
+# #Editors
+# .vscode/
+# .idea/
+# #Original rules preserved
+# *.log

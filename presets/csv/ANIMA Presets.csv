@@ -1,0 +1,5 @@
+preset name,"prompt","negative"
+Anima Masterpiece,"score_9, score_8, masterpiece, best quality, year 2025, year 2024, absurdres, highres, extremely detailed, flawless quality, very_aesthetic","score_6, score_5, score_4, worst quality, low quality, lowres, bad anatomy, bad hands, missing fingers, extra digits, deformed, disfigured, poorly drawn, jpeg artifacts, blurry, watermark, text, signature, numbers, frame, out of frame"
+Anima Best Quality,"score_8, score_7, masterpiece, high quality, year 2025, year 2024, highres, detailed, aesthetic","score_6, score_5, score_4, worst quality, low quality, lowres, bad anatomy, bad hands, missing fingers, deformed, poorly drawn, jpeg artifacts, blurry, watermark, text, frame"
+Anima Normal Quality,"score_7, score_6, high quality, normal quality, year 2024, average image","score_5, score_4, worst quality, low quality, lowres, bad anatomy, bad hands, deformed, jpeg artifacts, blurry"
+Anima Simple Quality,"score_6, normal quality, year 2024","score_4, worst quality, low quality, lowres, jpeg artifacts"

@@ -1,0 +1,40 @@
+{
+    "containers": [
+        {
+            "id": "p_1776790802075_quality_0",
+            "name": "quality_0",
+            "category": "positive_text",
+            "values": [
+                {
+                    "nodeTitle": "global quality positive",
+                    "nodeType": "CR Prompt Text",
+                    "widgetName": "prompt",
+                    "value": "masterpiece, best quality, very awa, very aesthetic"
+                }
+            ],
+            "metadata": {
+                "source": "manual_create"
+            },
+            "createdAt": "2026-04-21T17:00:02.075Z",
+            "modifiedAt": "2026-04-21T17:00:02.075Z"
+        },
+        {
+            "id": "p_1776790887585_negative_0",
+            "name": "negative_0",
+            "category": "negative_text",
+            "values": [
+                {
+                    "nodeTitle": "global quality negative",
+                    "nodeType": "CR Prompt Text",
+                    "widgetName": "prompt",
+                    "value": "worst quality, low quality, bad anatomy, bad hands"
+                }
+            ],
+            "metadata": {
+                "source": "manual_create"
+            },
+            "createdAt": "2026-04-21T17:01:27.585Z",
+            "modifiedAt": "2026-04-21T17:01:27.585Z"
+        }
+    ]
+}

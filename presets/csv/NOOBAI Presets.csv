@@ -1,0 +1,5 @@
+preset name,"prompt","negative"
+Noobai Masterpiece,"masterpiece, best quality, newest, year 2025, year 2024, highres, absurdres, extremely detailed, flawless quality, very_aesthetic","worst quality, low quality, old, early, lowres, bad anatomy, bad hands, missing fingers, extra digits, deformed, disfigured, poorly drawn, jpeg artifacts, blurry, watermark, text, signature, frame, out of frame"
+Noobai Best Quality,"masterpiece, best quality, newest, year 2025, year 2024, highres, detailed, good quality, aesthetic","worst quality, low quality, old, early, lowres, bad anatomy, bad hands, missing fingers, deformed, jpeg artifacts, blurry, watermark, text"
+Noobai Normal Quality,"normal quality, high quality, newest, year 2024","worst quality, low quality, old, early, lowres, bad anatomy, bad hands, deformed, jpeg artifacts, blurry"
+Noobai Simple Quality,"normal quality, newest, year 2024","worst quality, low quality, lowres, jpeg artifacts"

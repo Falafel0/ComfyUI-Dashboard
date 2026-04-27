@@ -195,6 +195,17 @@ export async function syncVirtualWidget(virtualWidget) {
     
     const realWidget = node.widgets[widgetIndex];
     
+    // Handle image widgets specially - convert ComfyUI paths
+    const isImageWidget = virtualWidget.type === 'virtual_image';
+    const isImagePathValue = typeof realWidget.value === 'string' && 
+                             (realWidget.value.startsWith('/') || 
+                              realWidget.value.includes('://') ||
+                              realWidget.value.endsWith('.png') ||
+                              realWidget.value.endsWith('.jpg') ||
+                              realWidget.value.endsWith('.jpeg') ||
+                              realWidget.value.endsWith('.webp') ||
+                              realWidget.value.endsWith('.gif'));
+    
     // Sync based on direction
     if (direction === 'input' || direction === 'bidirectional') {
         // Virtual -> Real
@@ -212,11 +223,59 @@ export async function syncVirtualWidget(virtualWidget) {
     
     if (direction === 'output' || direction === 'bidirectional') {
         // Real -> Virtual
-        virtualWidget.value = realWidget.value;
+        let realValue = realWidget.value;
+        
+        // For image widgets, ensure we get the proper path from the node
+        if (isImageWidget && isImagePathValue) {
+            virtualWidget.value = realValue;
+        } else {
+            virtualWidget.value = realValue;
+        }
     }
     
     virtualWidget.connection.lastSync = Date.now();
     return virtualWidget.value;
+}
+
+/**
+ * Start auto-sync for a special container (for real-time updates)
+ */
+export function startAutoSync(containerId, intervalMs = 500) {
+    if (!containerId) return null;
+    
+    const syncInterval = setInterval(async () => {
+        const { state } = await import("./state.js");
+        const container = state.appData.gridConfig?.items?.find(
+            item => item.id === containerId || item.config?.id === containerId
+        );
+        
+        if (!container?.config?.virtualWidgets) {
+            clearInterval(syncInterval);
+            return;
+        }
+        
+        for (const vw of container.config.virtualWidgets) {
+            if (vw.connection && (vw.connection.direction === 'output' || vw.connection.direction === 'bidirectional')) {
+                await syncVirtualWidget(vw);
+                // Update DOM if exists
+                const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
+                if (domEl && domEl.updateValue) {
+                    domEl.updateValue(vw.value);
+                }
+            }
+        }
+    }, intervalMs);
+    
+    return syncInterval;
+}
+
+/**
+ * Stop auto-sync interval
+ */
+export function stopAutoSync(intervalId) {
+    if (intervalId) {
+        clearInterval(intervalId);
+    }
 }
 
 /**

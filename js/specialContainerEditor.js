@@ -27,7 +27,8 @@ let onEditorSaveCallback = null;
 export function openSpecialContainerEditor(config = null, onSave = null) {
     const modal = document.createElement("div");
     modal.className = "a11-modal";
-    // Instant display, no animation
+    // Ensure modal is visible (not hidden)
+    modal.classList.remove('hidden');
     
     currentEditingConfig = config || null;
     onEditorSaveCallback = onSave;
@@ -503,6 +504,7 @@ function openConnectionDialog(virtualWidget, modal) {
     
     const connModal = document.createElement("div");
     connModal.className = "a11-modal";
+    connModal.classList.remove('hidden');
     
     let nodeOptions = '<option value="">-- Select Node --</option>';
     app.graph._nodes.forEach(node => {
@@ -597,6 +599,7 @@ function openConnectionDialog(virtualWidget, modal) {
 function openWidgetConfigDialog(virtualWidget, modal) {
     const configModal = document.createElement("div");
     configModal.className = "a11-modal";
+    configModal.classList.remove('hidden');
     
     let configFields = '';
     

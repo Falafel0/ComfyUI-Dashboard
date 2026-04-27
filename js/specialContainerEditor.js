@@ -1108,24 +1108,8 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             virtualWidget.config.placeholder = configModal.querySelector('#vw-config-placeholder').value;
             virtualWidget.config.rows = parseInt(configModal.querySelector('#vw-config-rows').value) || 3;
         }
-        
+
         refreshVirtualWidgetsList(currentEditingConfig, modal);
-        configModal.remove();
-    };
-}
-            virtualWidget.config.label = configModal.querySelector('#vw-config-btn-label').value;
-            virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accent').value;
-        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
-            virtualWidget.config.format = configModal.querySelector('#vw-config-format').value;
-            virtualWidget.config.fontSize = parseInt(configModal.querySelector('#vw-config-fontsize').value) || 16;
-        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
-            virtualWidget.config.fit = configModal.querySelector('#vw-config-fit').value;
-        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
-            virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
-            virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
-            virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accent').value;
-        }
-        
         configModal.remove();
     };
 }

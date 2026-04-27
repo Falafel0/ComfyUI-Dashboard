@@ -1333,6 +1333,7 @@
 
 .gw-widget-wrapper.is-text-widget { 
     overflow: visible; 
+    position: relative;
 }
 
 .gw-widget-wrapper--grows { 

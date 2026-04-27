@@ -181,7 +181,7 @@ export function disconnectVirtualWidget(virtualWidget) {
 /**
  * Sync value between virtual and real widgets
  */
-export async function syncVirtualWidget(virtualWidget) {
+export async function syncVirtualWidget(virtualWidget, preserveVirtualValue = false) {
     if (!virtualWidget?.connection) return null;
     
     const { app } = await import("../../scripts/app.js");
@@ -227,9 +227,15 @@ export async function syncVirtualWidget(virtualWidget) {
         
         // For image widgets, ensure we get the proper path from the node
         if (isImageWidget && isImagePathValue) {
-            virtualWidget.value = realValue;
+            // Only update virtual value if not preserving or if real value is different
+            if (!preserveVirtualValue || virtualWidget.value !== realValue) {
+                virtualWidget.value = realValue;
+            }
         } else {
-            virtualWidget.value = realValue;
+            // Only update virtual value if not preserving or if real value is different
+            if (!preserveVirtualValue || virtualWidget.value !== realValue) {
+                virtualWidget.value = realValue;
+            }
         }
     }
     
@@ -256,7 +262,8 @@ export function startAutoSync(containerId, intervalMs = 500) {
         
         for (const vw of container.config.virtualWidgets) {
             if (vw.connection && (vw.connection.direction === 'output' || vw.connection.direction === 'bidirectional')) {
-                await syncVirtualWidget(vw);
+                // Auto-sync: do NOT preserve virtual value - always update from real widget for output/bidirectional
+                await syncVirtualWidget(vw, false);
                 // Update DOM if exists
                 const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
                 if (domEl && domEl.updateValue) {

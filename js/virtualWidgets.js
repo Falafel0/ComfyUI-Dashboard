@@ -534,6 +534,7 @@ async function syncWithRealWidget(virtualWidget) {
         const realWidget = node.widgets[widgetIndex];
 
         if (direction === 'input' || direction === 'bidirectional') {
+            // Virtual -> Real: update real widget with virtual value
             realWidget.value = virtualWidget.value;
             if (realWidget.callback) {
                 try {
@@ -542,6 +543,11 @@ async function syncWithRealWidget(virtualWidget) {
                     console.error('[Virtual Widget] Callback error:', e);
                 }
             }
+        }
+
+        if (direction === 'output' || direction === 'bidirectional') {
+            // Real -> Virtual: update virtual value from real widget
+            virtualWidget.value = realWidget.value;
         }
 
         virtualWidget.connection.lastSync = Date.now();

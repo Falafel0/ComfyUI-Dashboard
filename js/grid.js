@@ -1305,6 +1305,20 @@ export function renderGridItemContent(domElement, config) {
                     if (!generatedWrapper.parentNode || generatedWrapper.parentNode !== body) {
                         body.appendChild(generatedWrapper);
                     }
+
+                    // Sync virtual widget with connected real widget on render
+                    if (vw.connection) {
+                        // First sync: preserve virtual value to avoid overwriting with real widget value
+                        syncVirtualWidget(vw, true).then(() => {
+                            // Update DOM with synced value
+                            if (vw.value !== undefined && vw.value !== null) {
+                                const domEl = document.querySelector(`[data-virtual-widget-id="${virtualKey}"]`);
+                                if (domEl && domEl.updateValue) {
+                                    domEl.updateValue(vw.value);
+                                }
+                            }
+                        });
+                    }
                 }
             });
         }

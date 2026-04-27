@@ -25,9 +25,21 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     wrapper.dataset.containerId = containerId;
     wrapper.dataset.widgetType = virtualWidget.type;
 
-    // Restore saved state if exists (BEFORE creating content)
+    // Restore saved state in priority order:
+    // 1. virtualWidgetStates (runtime state)
+    // 2. config.savedValue (persisted state)
+    // 3. existing virtualWidget.value
     if (virtualWidgetStates.has(virtualWidget.id)) {
         virtualWidget.value = virtualWidgetStates.get(virtualWidget.id);
+    } else if (virtualWidget.config?.savedValue !== undefined) {
+        virtualWidget.value = virtualWidget.config.savedValue;
+    } else if (virtualWidget.value === undefined) {
+        // Default value for button types
+        if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+            virtualWidget.value = false;
+        } else {
+            virtualWidget.value = 0;
+        }
     }
 
     // Add updateValue method for external updates
@@ -69,11 +81,6 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
         // Broadcast update
         broadcastWidgetUpdate(`virtual_${virtualWidget.id}`, null, newValue);
     };
-    
-    // Ensure value is set before creating content
-    if (virtualWidget.config?.savedValue !== undefined && virtualWidget.value === undefined) {
-        virtualWidget.value = virtualWidget.config.savedValue;
-    }
     
     const widgetElement = createWidgetContent(virtualWidget, options, handleValueChange);
     if (widgetElement) {

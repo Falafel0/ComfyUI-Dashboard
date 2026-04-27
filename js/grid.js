@@ -9,8 +9,25 @@ import {
     PRESET_CATEGORIES,
     DEFAULT_SORT_ORDER,
     createContainerPreset,
-    validateContainerPreset
+    validateContainerPreset,
+    CONTAINER_TYPES
 } from "./presetManager.js";
+import { 
+    createSpecialContainer,
+    createVirtualWidget,
+    SPECIAL_CONTAINER_TYPES,
+    SPECIAL_WIDGET_TYPES,
+    serializeSpecialContainer,
+    validateSpecialContainer,
+    syncVirtualWidget,
+    connectVirtualWidget,
+    disconnectVirtualWidget,
+    startAutoSync,
+    stopAutoSync,
+    virtualWidgetStates
+} from "./specialContainers.js";
+import { openSpecialContainerEditor } from "./specialContainerEditor.js";
+import { createVirtualWidgetDOM, applySpecialContainerLayout } from "./virtualWidgets.js";
 
 /**
  * Применяет пресет к виджетам конкретного контейнера
@@ -917,11 +934,23 @@ export function renderGridItemContent(domElement, config) {
 
     domElement.classList.add(`gw-view-${config.containerView}`);
 
+    // Apply seamless mode override from global settings
+    const isSeamless = state.settings.seamlessMode === true;
+    
     if (config.customBg && config.containerView !== 'glass' && config.containerView !== 'clean') domElement.style.backgroundColor = config.customBg;
     else domElement.style.backgroundColor = '';
     domElement.style.opacity = config.customOpacity || 1.0;
-    if (config.borderCol) domElement.style.borderColor = config.borderCol;
-    if (config.borderRadius !== undefined && config.borderRadius !== "") domElement.style.borderRadius = config.borderRadius + "px";
+    
+    // Only apply border settings if not in seamless mode (global overrides local)
+    if (!isSeamless) {
+        if (config.borderCol) domElement.style.borderColor = config.borderCol;
+        if (config.borderRadius !== undefined && config.borderRadius !== "") domElement.style.borderRadius = config.borderRadius + "px";
+    } else {
+        // In seamless mode, remove borders visually
+        domElement.style.borderColor = 'transparent';
+        domElement.style.borderRadius = '0';
+        domElement.style.boxShadow = 'none';
+    }
 
     if (config.minimalHeader) domElement.classList.add("minimal-header");
     if (config.color) domElement.setAttribute("data-color", config.color);
@@ -1077,7 +1106,15 @@ export function renderGridItemContent(domElement, config) {
         controlsDiv.appendChild(createSelect(DENSITY_MODES, config.widgetDensity, (v) => { config.widgetDensity = v; }));
 
         const gearBtn = document.createElement("span"); gearBtn.className = "gw-icon-btn"; gearBtn.innerText = "⚙";
-        gearBtn.onclick = (e) => { e.stopPropagation(); openContainerSettings(config, domElement); };
+        gearBtn.onclick = (e) => { 
+            e.stopPropagation(); 
+            // Check if this is a special container
+            if (config.containerType === CONTAINER_TYPES.SPECIAL) {
+                openSpecialContainerSettings(config, domElement);
+            } else {
+                openContainerSettings(config, domElement); 
+            }
+        };
         controlsDiv.appendChild(gearBtn);
     }
 
@@ -1129,7 +1166,7 @@ export function renderGridItemContent(domElement, config) {
         // Собираем существующие виджеты для сравнения
         const existingWidgets = new Map();
         body.querySelectorAll('.gw-widget-wrapper').forEach(el => {
-            const key = el.dataset.widgetKey; // nodeId_widgetIndex
+            const key = el.dataset.widgetKey || el.dataset.virtualWidgetId; // Support both real and virtual widgets
             if (key) {
                 existingWidgets.set(key, el);
             }
@@ -1137,6 +1174,7 @@ export function renderGridItemContent(domElement, config) {
 
         const newWidgetKeys = new Set();
 
+        // Render real widgets from config.widgets
         config.widgets.forEach(wRef => {
             if (wRef.hidden) return;
             const node = app.graph.getNodeById(wRef.nodeId);
@@ -1203,6 +1241,96 @@ export function renderGridItemContent(domElement, config) {
                 }
             }
         });
+
+        // Render virtual widgets for special containers
+        if (config.containerType === CONTAINER_TYPES.SPECIAL && config.virtualWidgets) {
+            // Apply special container type-specific layout
+            applySpecialContainerLayout(body, config);
+
+            config.virtualWidgets.forEach(vw => {
+                const virtualKey = `virtual_${vw.id}`;
+                newWidgetKeys.add(virtualKey);
+
+                // Restore saved state before rendering
+                if (virtualWidgetStates.has(vw.id)) {
+                    vw.value = virtualWidgetStates.get(vw.id);
+                }
+
+                const options = {
+                    hideLabel: vw.hideLabel,
+                    labelColor: vw.labelColor,
+                    width: vw.width,
+                    fontSize: vw.fontSize,
+                    textAlign: vw.textAlign,
+                    customHeight: vw.customHeight,
+                    readOnly: vw.readOnly
+                };
+
+                let generatedWrapper = null;
+
+                // Check if widget already exists
+                if (existingWidgets.has(virtualKey)) {
+                    generatedWrapper = existingWidgets.get(virtualKey);
+                    updateWidgetWrapperStyles(generatedWrapper, vw, options);
+                    existingWidgets.delete(virtualKey);
+                } else {
+                    // Create new virtual widget DOM
+                    generatedWrapper = createVirtualWidgetDOM(vw, config.id || `container_${Date.now()}`, options);
+                    if (generatedWrapper) {
+                        generatedWrapper.dataset.virtualWidgetId = virtualKey;
+                    }
+                }
+
+                if (generatedWrapper) {
+                    const isGridMode = activeLayout.startsWith('col-') || activeLayout === 'auto';
+
+                    if (isGridMode && vw.colSpan) {
+                        let maxCols = 12;
+                        if (activeLayout === 'col-2') maxCols = 2;
+                        if (activeLayout === 'col-3') maxCols = 3;
+                        if (activeLayout === 'col-4') maxCols = 4;
+                        if (activeLayout === 'col-5') maxCols = 5;
+                        if (activeLayout === 'col-6') maxCols = 6;
+                        const span = Math.min(parseInt(vw.colSpan) || 1, maxCols);
+                        generatedWrapper.style.gridColumn = `span ${span}`;
+                    }
+
+                    const wWidth = vw.width;
+                    if (wWidth) {
+                        const wStr = String(wWidth).trim().toLowerCase();
+                        if (wStr === "auto" || wStr === "100%" || wStr === "flex") {
+                            generatedWrapper.style.width = "auto";
+                            generatedWrapper.style.flex = "1 1 auto";
+                            generatedWrapper.style.maxWidth = "none";
+                        } else {
+                            const widthVal = isNaN(wWidth) ? wWidth : wWidth + "px";
+                            generatedWrapper.style.width = widthVal;
+                            generatedWrapper.style.flex = `0 0 ${widthVal}`;
+                            generatedWrapper.style.maxWidth = widthVal;
+                        }
+                    }
+
+                    // Add to body if not already there
+                    if (!generatedWrapper.parentNode || generatedWrapper.parentNode !== body) {
+                        body.appendChild(generatedWrapper);
+                    }
+
+                    // Sync virtual widget with connected real widget on render
+                    if (vw.connection) {
+                        // First sync: preserve virtual value to avoid overwriting with real widget value
+                        syncVirtualWidget(vw, true).then(() => {
+                            // Update DOM with synced value
+                            if (vw.value !== undefined && vw.value !== null) {
+                                const domEl = document.querySelector(`[data-virtual-widget-id="${virtualKey}"]`);
+                                if (domEl && domEl.updateValue) {
+                                    domEl.updateValue(vw.value);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
 
         // ❌ Удаляем виджеты которых больше нет в конфигурации
         existingWidgets.forEach((el, key) => {
@@ -1745,6 +1873,41 @@ export function refreshActiveItem() {
     if (!sel || !sel.value) return;
     const gridItem = document.querySelector(`.grid-stack-item[gs-id="${sel.value}"]`);
     if (gridItem) { const content = gridItem.querySelector(".grid-stack-item-content"); const config = JSON.parse(content.dataset.config); renderGridItemContent(content, config); updateGraphExtra(true); }
+}
+
+/**
+ * Open the special container creator dialog
+ */
+export function openSpecialContainerCreator() {
+    // Open the special container editor with no existing config (create mode)
+    openSpecialContainerEditor(null, (config, isDelete) => {
+        if (isDelete || !config) return;
+        
+        // Add the special container to the grid
+        addGridItem(config, { w: 12, h: 4 });
+        setTimeout(refreshContainerList, 100);
+    });
+}
+
+/**
+ * Open settings for a special container
+ */
+export function openSpecialContainerSettings(config, domElement) {
+    openSpecialContainerEditor(config, (updatedConfig, isDelete) => {
+        if (isDelete) {
+            // Remove the container from grid
+            const gridItem = domElement.closest(".grid-stack-item");
+            if (gridItem && state.grid) {
+                state.grid.removeWidget(gridItem);
+            }
+        } else if (updatedConfig) {
+            // Update the config and re-render
+            domElement.dataset.config = JSON.stringify(updatedConfig);
+            renderGridItemContent(domElement, updatedConfig);
+        }
+        updateGraphExtra(true);
+        refreshContainerList();
+    });
 }
 
 export function syncNodeMonitors() { }

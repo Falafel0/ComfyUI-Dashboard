@@ -1,10 +1,11 @@
 import { app } from "../../scripts/app.js";
 import { state, saveSettings, resetSettings } from "./state.js";
 import { updateDynamicStyles } from "./styles.js";
-import { addGridItem, refreshActiveItem, updateGraphExtra, applyGridState, refreshContainerList, initGrid, renderGlobalPanel, renderRightPanel, renderGridItemContent, openGroupSettings } from "./grid.js";
+import { addGridItem, refreshActiveItem, updateGraphExtra, applyGridState, refreshContainerList, initGrid, renderGlobalPanel, renderRightPanel, renderGridItemContent, openGroupSettings, openSpecialContainerCreator } from "./grid.js";
 import { LayoutTemplateManager, UIPreferencesManager, validateSettings, migrateSettings } from "./settingsManager.js";
 import { DOMManager } from "./widgets/CustomDOMInterpreter.js";
 import { openPresetManagerModal } from "./widgets/PresetManagerUI.js";
+import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 
 export function toggleWebUIStudio() {
     const overlay = document.getElementById("a11-overlay");
@@ -329,9 +330,24 @@ export function injectUI() {
     document.body.appendChild(overlay);
 }
 
+// Helper function to close modals smoothly without twitching
+export function closeModalSmooth(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    // Wait for transition to complete before removing from DOM
+    setTimeout(() => {
+        if (modal && modal.parentNode) {
+            modal.remove();
+        }
+    }, 200); // Match CSS transition duration
+}
+
 function openGlobalSettings() {
     const modal = document.createElement("div");
-    modal.className = "a11-modal open";
+    modal.className = "a11-modal";
+    // Force reflow to ensure transition works
+    void modal.offsetWidth;
+    modal.classList.add('open');
     modal.innerHTML = `
         <div class="a11-modal-content" style="width:700px; max-height:85vh; overflow:hidden; display:flex; flex-direction:column;">
             <div class="a11-modal-title">⚙ Global Settings</div>
@@ -373,6 +389,7 @@ function openGlobalSettings() {
                             <div class="a11-settings-title">Grid Configuration</div>
                             <div class="a11-setting-row"><label>Grid Density (Cell Height px)</label><input type="number" id="gs-density" value="${state.settings.gridCellHeight}" min="30" max="200"></div>
                             <div class="a11-setting-row"><label>Grid Margin (Gap px)</label><input type="number" id="gs-margin" value="${state.settings.gridMargin !== undefined ? state.settings.gridMargin : 5}" min="0" max="50"></div>
+                            <div class="a11-setting-row"><label>Seamless Mode (No Borders)</label><input type="checkbox" id="gs-seamless" ${state.settings.seamlessMode ? "checked" : ""}></div>
                         </div>
                         <div class="a11-settings-block">
                             <div class="a11-settings-title">Gallery & Performance</div>
@@ -438,7 +455,7 @@ function openGlobalSettings() {
 
     modal.querySelector("#gs-reset").onclick = () => {
         if (confirm("Are you sure you want to reset ALL settings to defaults? This cannot be undone.")) {
-            resetSettings(); updateDynamicStyles(); modal.remove();
+            resetSettings(); updateDynamicStyles(); closeModalSmooth(modal);
         }
     };
     
@@ -460,7 +477,7 @@ function openGlobalSettings() {
         alert(msg);
     };
     
-    modal.querySelector("#gs-cancel").onclick = () => modal.remove();
+    modal.querySelector("#gs-cancel").onclick = () => closeModalSmooth(modal);
     modal.querySelector("#gs-save").onclick = () => {
         const newDensity = parseInt(modal.querySelector("#gs-density").value);
         const newMargin = parseInt(modal.querySelector("#gs-margin").value);
@@ -470,6 +487,7 @@ function openGlobalSettings() {
 
         state.settings.gridCellHeight = newDensity;
         state.settings.gridMargin = newMargin;
+        state.settings.seamlessMode = modal.querySelector("#gs-seamless").checked;
 
         state.settings.themeColor = modal.querySelector("#gs-color").value;
         state.settings.bgColor = modal.querySelector("#gs-bg").value.trim();
@@ -499,7 +517,7 @@ function openGlobalSettings() {
             state.grid.removeAll();
             if (currentTab.layout) currentTab.layout.forEach(item => addGridItem(item.config, { x: item.x, y: item.y, w: item.w, h: item.h }));
         }
-        modal.remove();
+        closeModalSmooth(modal);
     };
 }
 
@@ -614,7 +632,9 @@ export function setupUIListeners() {
     document.getElementById("a11-tab-add").onclick = () => {
         if (!state.isEditMode) return;
         const modal = document.createElement("div");
-        modal.className = "a11-modal open";
+        modal.className = "a11-modal";
+        void modal.offsetWidth;
+        modal.classList.add('open');
 
         let presetOptions = `<option value="">-- Empty Tab --</option>`;
         if (state.settings.tabPresets && state.settings.tabPresets.length > 0) {
@@ -644,7 +664,7 @@ export function setupUIListeners() {
         `;
         document.body.appendChild(modal);
 
-        modal.querySelector("#nt-cancel").onclick = () => modal.remove();
+        modal.querySelector("#nt-cancel").onclick = () => closeModalSmooth(modal);
         modal.querySelector("#nt-create").onclick = () => {
             const name = modal.querySelector("#new-tab-name").value || "Unnamed Tab";
             const presetIdx = modal.querySelector("#new-tab-preset").value;
@@ -674,7 +694,7 @@ export function setupUIListeners() {
             state.appData.tabs.push({ name, generateBtnText, presetCategory: "", gallerySources, layout: newLayout, activeGroups: [] });
             updateGraphExtra(true);
             switchTab(state.appData.tabs.length - 1);
-            modal.remove();
+            closeModalSmooth(modal);
         };
     };
 
@@ -693,15 +713,56 @@ export function setupUIListeners() {
 
     document.getElementById("a11-add-new").onclick = () => {
         if (!state.isEditMode) return;
-        addGridItem({ title: "Container", widgets: [] }, { w: 12, h: 2 });
-        setTimeout(refreshContainerList, 100);
+        
+        // Create a menu to choose between regular and special container
+        const menu = document.createElement("div");
+        menu.className = "a11-modal";
+        void menu.offsetWidth;
+        menu.classList.add('open');
+        menu.innerHTML = `
+            <div class="a11-modal-content" style="width:450px;">
+                <div class="a11-modal-title">➕ Add New Container</div>
+                <div class="a11-modal-body">
+                    <div class="a11-settings-block">
+                        <div class="a11-settings-title">Select Container Type</div>
+                        <button id="add-regular-container-btn" class="a11-btn" style="width:100%; margin-bottom:10px; padding:15px; text-align:left;">
+                            <strong>📦 Regular Container</strong><br>
+                            <small style="opacity:0.7;">Standard container with widgets from nodes</small>
+                        </button>
+                        <button id="add-special-container-btn" class="a11-btn" style="width:100%; padding:15px; text-align:left; background:rgba(234,88,12,0.1); border-color:var(--a11-accent);">
+                            <strong>✨ Special Container</strong><br>
+                            <small style="opacity:0.7;">Autonomous container with virtual widgets</small>
+                        </button>
+                    </div>
+                </div>
+                <div class="a11-modal-footer">
+                    <button class="a11-btn" id="cancel-add-container">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(menu);
+        
+        menu.querySelector("#cancel-add-container").onclick = () => closeModalSmooth(menu);
+        
+        menu.querySelector("#add-regular-container-btn").onclick = () => {
+            closeModalSmooth(menu);
+            addGridItem({ title: "Container", widgets: [] }, { w: 12, h: 2 });
+            setTimeout(refreshContainerList, 100);
+        };
+        
+        menu.querySelector("#add-special-container-btn").onclick = () => {
+            closeModalSmooth(menu);
+            openSpecialContainerCreator();
+        };
     };
 
     document.getElementById("a11-tab-settings").onclick = () => {
         if (!state.isEditMode) return;
         const currentTab = state.appData.tabs[state.appData.activeIdx];
         const modal = document.createElement("div");
-        modal.className = "a11-modal open";
+        modal.className = "a11-modal";
+        void modal.offsetWidth;
+        modal.classList.add('open');
 
         let nodeOptions = "";
         const sources = currentTab.gallerySources || [];
@@ -966,7 +1027,7 @@ export function setupUIListeners() {
             reader.readAsText(file);
         };
 
-        modal.querySelector("#ts-cancel").onclick = () => modal.remove();
+        modal.querySelector("#ts-cancel").onclick = () => closeModalSmooth(modal);
         modal.querySelector("#ts-save").onclick = () => {
             currentTab.name = modal.querySelector("#ts-name").value || "Unnamed Tab";
             currentTab.generateBtnText = modal.querySelector("#ts-gen-text").value || "Generate";
@@ -975,7 +1036,7 @@ export function setupUIListeners() {
             updateGraphExtra(true); renderTabs();
             const btnGenMain = document.getElementById("btn-generate-main");
             if (btnGenMain) btnGenMain.innerText = currentTab.generateBtnText;
-            modal.remove();
+            closeModalSmooth(modal);
         };
     };
 

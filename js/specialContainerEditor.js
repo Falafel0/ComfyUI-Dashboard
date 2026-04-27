@@ -588,7 +588,7 @@ function openConnectionDialog(virtualWidget, modal) {
 }
 
 /**
- * Open widget configuration dialog
+ * Open widget configuration dialog with MAXIMUM settings for each virtual widget type
  */
 function openWidgetConfigDialog(virtualWidget, modal) {
     const configModal = document.createElement("div");
@@ -596,102 +596,76 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     
     let configFields = '';
     
-    // Common fields
+    // Common fields for all widgets
     configFields += `
         <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
             <label>Label</label>
             <input type="text" id="vw-config-label" value="${virtualWidget.config?.label || ''}" style="width:100%" placeholder="Widget label">
         </div>
+        <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+            <label>Width (%)</label>
+            <input type="range" id="vw-config-width" min="10" max="100" step="5" value="${virtualWidget.config?.width ?? 100}" style="width:100%">
+            <small style="opacity:0.7">Current: <span id="vw-width-val">${virtualWidget.config?.width ?? 100}%</span></small>
+        </div>
     `;
     
-    // Type-specific fields
-    if ([SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER, SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER].includes(virtualWidget.type)) {
+    // Type-specific fields - VIRTUAL_NUMBER
+    if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER) {
         configFields += `
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                    <label>Min</label>
+                    <label>Min Value</label>
                     <input type="number" id="vw-config-min" value="${virtualWidget.config?.min ?? 0}" style="width:100%">
                 </div>
                 <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                    <label>Max</label>
+                    <label>Max Value</label>
                     <input type="number" id="vw-config-max" value="${virtualWidget.config?.max ?? 100}" style="width:100%">
                 </div>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Decimal Places</label>
+                <input type="number" id="vw-config-decimals" value="${virtualWidget.config?.decimals ?? 0}" min="0" max="5" style="width:100%">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
                 <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                    <label>Step</label>
-                    <input type="number" id="vw-config-step" value="${virtualWidget.config?.step ?? 1}" step="any" style="width:100%">
+                    <label>Prefix</label>
+                    <input type="text" id="vw-config-prefix" value="${virtualWidget.config?.prefix || ''}" style="width:100%" placeholder="$">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Suffix</label>
+                    <input type="text" id="vw-config-suffix" value="${virtualWidget.config?.suffix || ''}" style="width:100%" placeholder="°C">
                 </div>
             </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Options (comma-separated)</label>
-                <input type="text" id="vw-config-options" value="${(virtualWidget.config?.options || []).join(', ')}" style="width:100%" placeholder="Option1, Option2, Option3">
-            </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>HTML Content</label>
-                <textarea id="vw-config-html" style="width:100%; min-height:150px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.html || ''}</textarea>
-            </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>CSS Styles</label>
-                <textarea id="vw-config-styles" style="width:100%; min-height:80px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.styles || ''}</textarea>
-            </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Placeholder</label>
-                <input type="text" id="vw-config-placeholder" value="${virtualWidget.config?.placeholder || ''}" style="width:100%" placeholder="Enter placeholder text">
-            </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Rows</label>
-                <input type="number" id="vw-config-rows" value="${virtualWidget.config?.rows || 3}" min="1" max="20" style="width:100%">
-            </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Button Label</label>
-                <input type="text" id="vw-config-btn-label" value="${virtualWidget.config?.label || virtualWidget.name || 'Button'}" style="width:100%">
-            </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Accent Color</label>
-                <input type="color" id="vw-config-accent" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
-            </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Format</label>
-                <select id="vw-config-format" style="width:100%">
-                    <option value="default" ${virtualWidget.config?.format === 'default' ? 'selected' : ''}>Default</option>
-                    <option value="number" ${virtualWidget.config?.format === 'number' ? 'selected' : ''}>Number</option>
-                    <option value="percent" ${virtualWidget.config?.format === 'percent' ? 'selected' : ''}>Percent</option>
-                    <option value="currency" ${virtualWidget.config?.format === 'currency' ? 'selected' : ''}>Currency</option>
-                    <option value="boolean" ${virtualWidget.config?.format === 'boolean' ? 'selected' : ''}>Boolean</option>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Color Mode</label>
+                <select id="vw-config-colormode" style="width:100%">
+                    <option value="static" ${virtualWidget.config?.colorMode === 'static' ? 'selected' : ''}>Static Color</option>
+                    <option value="gradient" ${virtualWidget.config?.colorMode === 'gradient' ? 'selected' : ''}>Value Gradient</option>
+                    <option value="alarm" ${virtualWidget.config?.colorMode === 'alarm' ? 'selected' : ''}>Alarm Thresholds</option>
                 </select>
             </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Font Size (px)</label>
-                <input type="number" id="vw-config-fontsize" value="${virtualWidget.config?.fontSize || 16}" min="10" max="72" style="width:100%">
-            </div>
+            ${virtualWidget.config?.colorMode === 'static' ? `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Text Color</label>
+                <input type="color" id="vw-config-color" value="${virtualWidget.config?.color || '#ffffff'}" style="width:100%; height:40px;">
+            </div>` : ''}
+            ${virtualWidget.config?.colorMode === 'alarm' ? `
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label style="color:#ff4444">High Limit</label>
+                    <input type="number" id="vw-config-highlimit" value="${virtualWidget.config?.highLimit ?? 90}" style="width:100%">
+                    <input type="color" id="vw-config-highcolor" value="${virtualWidget.config?.highColor || '#ff4444'}" style="width:100%; height:30px; margin-top:5px;">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label style="color:#44ff44">Low Limit</label>
+                    <input type="number" id="vw-config-lowlimit" value="${virtualWidget.config?.lowLimit ?? 10}" style="width:100%">
+                    <input type="color" id="vw-config-lowcolor" value="${virtualWidget.config?.lowColor || '#44ff44'}" style="width:100%; height:30px; margin-top:5px;">
+                </div>
+            </div>` : ''}
         `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
-        configFields += `
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Fit Mode</label>
-                <select id="vw-config-fit" style="width:100%">
-                    <option value="contain" ${virtualWidget.config?.fit === 'contain' ? 'selected' : ''}>Contain</option>
-                    <option value="cover" ${virtualWidget.config?.fit === 'cover' ? 'selected' : ''}>Cover</option>
-                    <option value="fill" ${virtualWidget.config?.fit === 'fill' ? 'selected' : ''}>Fill</option>
-                    <option value="none" ${virtualWidget.config?.fit === 'none' ? 'selected' : ''}>None</option>
-                </select>
-            </div>
-        `;
-    } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
+    }
+    // VIRTUAL_SLIDER
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER) {
         configFields += `
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
@@ -704,14 +678,327 @@ function openWidgetConfigDialog(virtualWidget, modal) {
                 </div>
             </div>
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Accent Color</label>
-                <input type="color" id="vw-config-accent" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
+                <label>Step Size</label>
+                <input type="number" id="vw-config-step" value="${virtualWidget.config?.step ?? 1}" step="any" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Orientation</label>
+                <select id="vw-config-orient" style="width:100%">
+                    <option value="horizontal" ${virtualWidget.config?.orientation === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+                    <option value="vertical" ${virtualWidget.config?.orientation === 'vertical' ? 'selected' : ''}>Vertical</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Track Color</label>
+                <input type="color" id="vw-config-trackcolor" value="${virtualWidget.config?.trackColor || '#444444'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Thumb Color</label>
+                <input type="color" id="vw-config-thumbcolor" value="${virtualWidget.config?.thumbColor || '#ea580c'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Show Tooltip</label>
+                <select id="vw-config-tooltip" style="width:100%">
+                    <option value="always" ${virtualWidget.config?.showTooltip === 'always' ? 'selected' : ''}>Always</option>
+                    <option value="drag" ${virtualWidget.config?.showTooltip === 'drag' ? 'selected' : ''}>On Drag</option>
+                    <option value="never" ${virtualWidget.config?.showTooltip === 'never' ? 'selected' : ''}>Never</option>
+                </select>
+            </div>
+        `;
+    }
+    // VIRTUAL_TOGGLE
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Style</label>
+                <select id="vw-config-style" style="width:100%">
+                    <option value="switch" ${virtualWidget.config?.style === 'switch' ? 'selected' : ''}>Modern Switch</option>
+                    <option value="checkbox" ${virtualWidget.config?.style === 'checkbox' ? 'selected' : ''}>Classic Checkbox</option>
+                    <option value="button" ${virtualWidget.config?.style === 'button' ? 'selected' : ''}>Push Button</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>ON Color</label>
+                    <input type="color" id="vw-config-oncolor" value="${virtualWidget.config?.onColor || '#00ff00'}" style="width:100%; height:40px;">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>OFF Color</label>
+                    <input type="color" id="vw-config-offcolor" value="${virtualWidget.config?.offColor || '#ff4444'}" style="width:100%; height:40px;">
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>ON Label</label>
+                    <input type="text" id="vw-config-onlabel" value="${virtualWidget.config?.onLabel || 'ON'}" style="width:100%">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>OFF Label</label>
+                    <input type="text" id="vw-config-offlabel" value="${virtualWidget.config?.offLabel || 'OFF'}" style="width:100%">
+                </div>
+            </div>
+        `;
+    }
+    // VIRTUAL_BUTTON
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Action Type</label>
+                <select id="vw-config-action" style="width:100%">
+                    <option value="momentary" ${virtualWidget.config?.actionType === 'momentary' ? 'selected' : ''}>Momentary</option>
+                    <option value="toggle" ${virtualWidget.config?.actionType === 'toggle' ? 'selected' : ''}>Toggle</option>
+                    <option value="link" ${virtualWidget.config?.actionType === 'link' ? 'selected' : ''}>External Link</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Icon Class (FontAwesome)</label>
+                <input type="text" id="vw-config-icon" value="${virtualWidget.config?.icon || ''}" style="width:100%" placeholder="fa fa-power-off">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Background Style</label>
+                <select id="vw-config-bgstyle" style="width:100%">
+                    <option value="solid" ${virtualWidget.config?.bgStyle === 'solid' ? 'selected' : ''}>Solid</option>
+                    <option value="gradient" ${virtualWidget.config?.bgStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
+                    <option value="outline" ${virtualWidget.config?.bgStyle === 'outline' ? 'selected' : ''}>Outline</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Primary Color</label>
+                    <input type="color" id="vw-config-color1" value="${virtualWidget.config?.color1 || '#ea580c'}" style="width:100%; height:40px;">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Secondary Color</label>
+                    <input type="color" id="vw-config-color2" value="${virtualWidget.config?.color2 || '#c2410c'}" style="width:100%; height:40px;">
+                </div>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Corner Radius (px)</label>
+                <input type="number" id="vw-config-radius" value="${virtualWidget.config?.radius ?? 4}" min="0" max="50" style="width:100%">
+            </div>
+        `;
+    }
+    // VIRTUAL_DISPLAY
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Display Type</label>
+                <select id="vw-config-disptype" style="width:100%">
+                    <option value="digital" ${virtualWidget.config?.displayType === 'digital' ? 'selected' : ''}>Digital (7-Segment)</option>
+                    <option value="led" ${virtualWidget.config?.displayType === 'led' ? 'selected' : ''}>LED Dot Matrix</option>
+                    <option value="lcd" ${virtualWidget.config?.displayType === 'lcd' ? 'selected' : ''}>LCD Text</option>
+                    <option value="plain" ${virtualWidget.config?.displayType === 'plain' ? 'selected' : ''}>Plain Text</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>LED Color</label>
+                <input type="color" id="vw-config-ledcolor" value="${virtualWidget.config?.ledColor || '#ff0000'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Background Color</label>
+                <input type="color" id="vw-config-bgcolor" value="${virtualWidget.config?.bgColor || '#111111'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Font Size (px)</label>
+                <input type="number" id="vw-config-fontsize" value="${virtualWidget.config?.fontSize ?? 24}" min="10" max="72" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Alignment</label>
+                <select id="vw-config-align" style="width:100%">
+                    <option value="left" ${virtualWidget.config?.align === 'left' ? 'selected' : ''}>Left</option>
+                    <option value="center" ${virtualWidget.config?.align === 'center' ? 'selected' : ''}>Center</option>
+                    <option value="right" ${virtualWidget.config?.align === 'right' ? 'selected' : ''}>Right</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Blink on Alarm</label>
+                <select id="vw-config-blink" style="width:100%">
+                    <option value="false" ${virtualWidget.config?.blinkAlarm === false ? 'selected' : ''}>No</option>
+                    <option value="true" ${virtualWidget.config?.blinkAlarm === true ? 'selected' : ''}>Yes</option>
+                </select>
+            </div>
+        `;
+    }
+    // VIRTUAL_IMAGE
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Image Source (URL or Node Path)</label>
+                <input type="text" id="vw-config-src" value="${virtualWidget.config?.src || ''}" style="width:100%" placeholder="/images/logo.png">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Fit Mode</label>
+                <select id="vw-config-fit" style="width:100%">
+                    <option value="contain" ${virtualWidget.config?.fit === 'contain' ? 'selected' : ''}>Contain</option>
+                    <option value="cover" ${virtualWidget.config?.fit === 'cover' ? 'selected' : ''}>Cover</option>
+                    <option value="fill" ${virtualWidget.config?.fit === 'fill' ? 'selected' : ''}>Fill (Stretch)</option>
+                    <option value="none" ${virtualWidget.config?.fit === 'none' ? 'selected' : ''}>None</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Overlay Opacity (0-1)</label>
+                <input type="range" id="vw-config-overlay" min="0" max="1" step="0.1" value="${virtualWidget.config?.overlayOpacity ?? 0}" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Overlay Color</label>
+                <input type="color" id="vw-config-overlaycolor" value="${virtualWidget.config?.overlayColor || '#000000'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Grayscale (%)</label>
+                <input type="range" id="vw-config-gray" min="0" max="100" value="${virtualWidget.config?.grayscale ?? 0}" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Border Radius (px)</label>
+                <input type="number" id="vw-config-radius" value="${virtualWidget.config?.radius ?? 0}" min="0" max="100" style="width:100%">
+            </div>
+        `;
+    }
+    // VIRTUAL_CHART
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_CHART) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Chart Type</label>
+                <select id="vw-config-charttype" style="width:100%">
+                    <option value="line" ${virtualWidget.config?.chartType === 'line' ? 'selected' : ''}>Line Chart</option>
+                    <option value="bar" ${virtualWidget.config?.chartType === 'bar' ? 'selected' : ''}>Bar Chart</option>
+                    <option value="pie" ${virtualWidget.config?.chartType === 'pie' ? 'selected' : ''}>Pie Chart</option>
+                    <option value="gauge" ${virtualWidget.config?.chartType === 'gauge' ? 'selected' : ''}>Gauge</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Line Color</label>
+                <input type="color" id="vw-config-linecolor" value="${virtualWidget.config?.lineColor || '#ea580c'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Fill Area</label>
+                <select id="vw-config-fill" style="width:100%">
+                    <option value="none" ${virtualWidget.config?.fill === 'none' ? 'selected' : ''}>No Fill</option>
+                    <option value="solid" ${virtualWidget.config?.fill === 'solid' ? 'selected' : ''}>Solid Fill</option>
+                    <option value="gradient" ${virtualWidget.config?.fill === 'gradient' ? 'selected' : ''}>Gradient Fill</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Show Grid</label>
+                <select id="vw-config-grid" style="width:100%">
+                    <option value="true" ${virtualWidget.config?.showGrid !== false ? 'selected' : ''}>Yes</option>
+                    <option value="false" ${virtualWidget.config?.showGrid === false ? 'selected' : ''}>No</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Max Points</label>
+                <input type="number" id="vw-config-maxpoints" value="${virtualWidget.config?.maxPoints ?? 50}" min="10" max="500" style="width:100%">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Y-Min</label>
+                    <input type="number" id="vw-config-ymin" value="${virtualWidget.config?.yMin ?? 0}" style="width:100%">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Y-Max</label>
+                    <input type="number" id="vw-config-ymax" value="${virtualWidget.config?.yMax ?? 100}" style="width:100%">
+                </div>
+            </div>
+        `;
+    }
+    // VIRTUAL_PROGRESS
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Style</label>
+                <select id="vw-config-pstyle" style="width:100%">
+                    <option value="bar" ${virtualWidget.config?.pStyle === 'bar' ? 'selected' : ''}>Horizontal Bar</option>
+                    <option value="circle" ${virtualWidget.config?.pStyle === 'circle' ? 'selected' : ''}>Circular</option>
+                    <option value="striped" ${virtualWidget.config?.pStyle === 'striped' ? 'selected' : ''}>Striped</option>
+                </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Min</label>
+                    <input type="number" id="vw-config-min" value="${virtualWidget.config?.min ?? 0}" style="width:100%">
+                </div>
+                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <label>Max</label>
+                    <input type="number" id="vw-config-max" value="${virtualWidget.config?.max ?? 100}" style="width:100%">
+                </div>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Bar Color</label>
+                <input type="color" id="vw-config-pcolor" value="${virtualWidget.config?.pColor || '#28a745'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Background Color</label>
+                <input type="color" id="vw-config-pbg" value="${virtualWidget.config?.pBg || '#333333'}" style="width:100%; height:40px;">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Show Percentage Text</label>
+                <select id="vw-config-showtext" style="width:100%">
+                    <option value="inside" ${virtualWidget.config?.showText === 'inside' ? 'selected' : ''}>Inside</option>
+                    <option value="outside" ${virtualWidget.config?.showText === 'outside' ? 'selected' : ''}>Outside</option>
+                    <option value="none" ${virtualWidget.config?.showText === 'none' ? 'selected' : ''}>Hidden</option>
+                </select>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Stroke Width (px)</label>
+                <input type="number" id="vw-config-stroke" value="${virtualWidget.config?.strokeWidth ?? 10}" min="1" max="50" style="width:100%">
+            </div>
+        `;
+    }
+    // CUSTOM_HTML
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>HTML Content</label>
+                <textarea id="vw-config-html" style="width:100%; min-height:150px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.html || '<div>Hello</div>'}</textarea>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>CSS Styles</label>
+                <textarea id="vw-config-styles" style="width:100%; min-height:80px; font-family:monospace; background:var(--a11-input); color:var(--a11-text); border:1px solid var(--a11-border); border-radius:4px; padding:8px;">${virtualWidget.config?.styles || 'color: white;'}</textarea>
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Sanitize HTML</label>
+                <select id="vw-config-sanitize" style="width:100%">
+                    <option value="true" ${virtualWidget.config?.sanitize !== false ? 'selected' : ''}>Yes (Safe)</option>
+                    <option value="false" ${virtualWidget.config?.sanitize === false ? 'selected' : ''}>No (Raw)</option>
+                </select>
+            </div>
+        `;
+    }
+    // VIRTUAL_DROPDOWN
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Options (comma-separated)</label>
+                <input type="text" id="vw-config-options" value="${(virtualWidget.config?.options || []).join(', ')}" style="width:100%" placeholder="Option1, Option2, Option3">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Placeholder</label>
+                <input type="text" id="vw-config-placeholder" value="${virtualWidget.config?.placeholder || 'Select...'}" style="width:100%">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Allow Custom Input</label>
+                <select id="vw-config-custom" style="width:100%">
+                    <option value="false" ${virtualWidget.config?.allowCustom === false ? 'selected' : ''}>No</option>
+                    <option value="true" ${virtualWidget.config?.allowCustom === true ? 'selected' : ''}>Yes</option>
+                </select>
+            </div>
+        `;
+    }
+    // VIRTUAL_TEXT
+    else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {
+        configFields += `
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label>Placeholder</label>
+                <input type="text" id="vw-config-placeholder" value="${virtualWidget.config?.placeholder || ''}" style="width:100%" placeholder="Enter placeholder text">
+            </div>
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Rows</label>
+                <input type="number" id="vw-config-rows" value="${virtualWidget.config?.rows ?? 3}" min="1" max="20" style="width:100%">
             </div>
         `;
     }
     
     configModal.innerHTML = `
-        <div class="a11-modal-content" style="width:500px;">
+        <div class="a11-modal-content" style="width:550px; max-width:90vw;">
             <div class="a11-modal-title">⚙️ Configure ${virtualWidget.type.replace(/_/g, ' ').toUpperCase()}</div>
             <div class="a11-modal-body" style="overflow-y:auto; max-height:70vh; padding:15px;">
                 ${configFields}
@@ -725,29 +1012,107 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     
     document.body.appendChild(configModal);
     
+    // Update width display
+    const widthSlider = configModal.querySelector('#vw-config-width');
+    const widthVal = configModal.querySelector('#vw-width-val');
+    if (widthSlider && widthVal) {
+        widthSlider.oninput = () => widthVal.textContent = widthSlider.value + '%';
+    }
+    
     configModal.querySelector('#vw-config-cancel').onclick = () => configModal.remove();
     
     configModal.querySelector('#vw-config-save').onclick = () => {
         // Save common config
         virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
+        virtualWidget.config.width = parseInt(configModal.querySelector('#vw-config-width').value) || 100;
         
         // Save type-specific config
-        if ([SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER, SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER].includes(virtualWidget.type)) {
+        if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER) {
+            virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
+            virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
+            virtualWidget.config.decimals = parseInt(configModal.querySelector('#vw-config-decimals').value) || 0;
+            virtualWidget.config.prefix = configModal.querySelector('#vw-config-prefix').value;
+            virtualWidget.config.suffix = configModal.querySelector('#vw-config-suffix').value;
+            virtualWidget.config.colorMode = configModal.querySelector('#vw-config-colormode').value;
+            if (virtualWidget.config.colorMode === 'static') {
+                virtualWidget.config.color = configModal.querySelector('#vw-config-color').value;
+            } else if (virtualWidget.config.colorMode === 'alarm') {
+                virtualWidget.config.highLimit = parseFloat(configModal.querySelector('#vw-config-highlimit').value) || 90;
+                virtualWidget.config.highColor = configModal.querySelector('#vw-config-highcolor').value;
+                virtualWidget.config.lowLimit = parseFloat(configModal.querySelector('#vw-config-lowlimit').value) || 10;
+                virtualWidget.config.lowColor = configModal.querySelector('#vw-config-lowcolor').value;
+            }
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER) {
             virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
             virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
             virtualWidget.config.step = parseFloat(configModal.querySelector('#vw-config-step').value) || 1;
+            virtualWidget.config.orientation = configModal.querySelector('#vw-config-orient').value;
+            virtualWidget.config.trackColor = configModal.querySelector('#vw-config-trackcolor').value;
+            virtualWidget.config.thumbColor = configModal.querySelector('#vw-config-thumbcolor').value;
+            virtualWidget.config.showTooltip = configModal.querySelector('#vw-config-tooltip').value;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE) {
+            virtualWidget.config.style = configModal.querySelector('#vw-config-style').value;
+            virtualWidget.config.onColor = configModal.querySelector('#vw-config-oncolor').value;
+            virtualWidget.config.offColor = configModal.querySelector('#vw-config-offcolor').value;
+            virtualWidget.config.onLabel = configModal.querySelector('#vw-config-onlabel').value;
+            virtualWidget.config.offLabel = configModal.querySelector('#vw-config-offlabel').value;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+            virtualWidget.config.actionType = configModal.querySelector('#vw-config-action').value;
+            virtualWidget.config.icon = configModal.querySelector('#vw-config-icon').value;
+            virtualWidget.config.bgStyle = configModal.querySelector('#vw-config-bgstyle').value;
+            virtualWidget.config.color1 = configModal.querySelector('#vw-config-color1').value;
+            virtualWidget.config.color2 = configModal.querySelector('#vw-config-color2').value;
+            virtualWidget.config.radius = parseInt(configModal.querySelector('#vw-config-radius').value) || 4;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
+            virtualWidget.config.displayType = configModal.querySelector('#vw-config-disptype').value;
+            virtualWidget.config.ledColor = configModal.querySelector('#vw-config-ledcolor').value;
+            virtualWidget.config.bgColor = configModal.querySelector('#vw-config-bgcolor').value;
+            virtualWidget.config.fontSize = parseInt(configModal.querySelector('#vw-config-fontsize').value) || 24;
+            virtualWidget.config.align = configModal.querySelector('#vw-config-align').value;
+            virtualWidget.config.blinkAlarm = configModal.querySelector('#vw-config-blink').value === 'true';
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE) {
+            virtualWidget.config.src = configModal.querySelector('#vw-config-src').value;
+            virtualWidget.config.fit = configModal.querySelector('#vw-config-fit').value;
+            virtualWidget.config.overlayOpacity = parseFloat(configModal.querySelector('#vw-config-overlay').value) || 0;
+            virtualWidget.config.overlayColor = configModal.querySelector('#vw-config-overlaycolor').value;
+            virtualWidget.config.grayscale = parseInt(configModal.querySelector('#vw-config-gray').value) || 0;
+            virtualWidget.config.radius = parseInt(configModal.querySelector('#vw-config-radius').value) || 0;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_CHART) {
+            virtualWidget.config.chartType = configModal.querySelector('#vw-config-charttype').value;
+            virtualWidget.config.lineColor = configModal.querySelector('#vw-config-linecolor').value;
+            virtualWidget.config.fill = configModal.querySelector('#vw-config-fill').value;
+            virtualWidget.config.showGrid = configModal.querySelector('#vw-config-grid').value === 'true';
+            virtualWidget.config.maxPoints = parseInt(configModal.querySelector('#vw-config-maxpoints').value) || 50;
+            virtualWidget.config.yMin = parseFloat(configModal.querySelector('#vw-config-ymin').value) || 0;
+            virtualWidget.config.yMax = parseFloat(configModal.querySelector('#vw-config-ymax').value) || 100;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS) {
+            virtualWidget.config.min = parseFloat(configModal.querySelector('#vw-config-min').value) || 0;
+            virtualWidget.config.max = parseFloat(configModal.querySelector('#vw-config-max').value) || 100;
+            virtualWidget.config.pStyle = configModal.querySelector('#vw-config-pstyle').value;
+            virtualWidget.config.pColor = configModal.querySelector('#vw-config-pcolor').value;
+            virtualWidget.config.pBg = configModal.querySelector('#vw-config-pbg').value;
+            virtualWidget.config.showText = configModal.querySelector('#vw-config-showtext').value;
+            virtualWidget.config.strokeWidth = parseInt(configModal.querySelector('#vw-config-stroke').value) || 10;
+        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
+            virtualWidget.config.html = configModal.querySelector('#vw-config-html').value;
+            virtualWidget.config.styles = configModal.querySelector('#vw-config-styles').value;
+            virtualWidget.config.sanitize = configModal.querySelector('#vw-config-sanitize').value === 'true';
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN) {
             virtualWidget.config.options = configModal.querySelector('#vw-config-options').value
                 .split(',')
                 .map(s => s.trim())
                 .filter(s => s.length > 0);
-        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.CUSTOM_HTML) {
-            virtualWidget.config.html = configModal.querySelector('#vw-config-html').value;
-            virtualWidget.config.styles = configModal.querySelector('#vw-config-styles').value;
+            virtualWidget.config.placeholder = configModal.querySelector('#vw-config-placeholder').value;
+            virtualWidget.config.allowCustom = configModal.querySelector('#vw-config-custom').value === 'true';
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT) {
             virtualWidget.config.placeholder = configModal.querySelector('#vw-config-placeholder').value;
             virtualWidget.config.rows = parseInt(configModal.querySelector('#vw-config-rows').value) || 3;
-        } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+        }
+        
+        refreshVirtualWidgetsList(currentEditingConfig, modal);
+        configModal.remove();
+    };
+}
             virtualWidget.config.label = configModal.querySelector('#vw-config-btn-label').value;
             virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accent').value;
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {

@@ -184,23 +184,41 @@ export function validateContainerPreset(preset) {
         errors.push('Preset name is required and must be a non-empty string');
     }
 
-    if (!preset.values || !Array.isArray(preset.values)) {
-        errors.push('Preset values must be an array');
-    } else {
-        preset.values.forEach((v, idx) => {
-            if (!v.nodeTitle) errors.push(`Value[${idx}]: Missing nodeTitle`);
-            if (!v.nodeType) errors.push(`Value[${idx}]: Missing nodeType`);
-            if (!v.widgetName) errors.push(`Value[${idx}]: Missing widgetName`);
-        });
+    // For special containers, values array is optional (they use virtualWidgets instead)
+    if (preset.containerType !== CONTAINER_TYPES.SPECIAL) {
+        if (!preset.values || !Array.isArray(preset.values)) {
+            errors.push('Preset values must be an array');
+        } else {
+            preset.values.forEach((v, idx) => {
+                if (!v.nodeTitle) errors.push(`Value[${idx}]: Missing nodeTitle`);
+                if (!v.nodeType) errors.push(`Value[${idx}]: Missing nodeType`);
+                if (!v.widgetName) errors.push(`Value[${idx}]: Missing widgetName`);
+            });
+        }
     }
 
     if (preset.category && typeof preset.category !== 'string') {
         errors.push('Category must be a string');
     }
 
-    // Validate containerType (placeholder for special containers)
+    // Validate containerType
     if (preset.containerType && !Object.values(CONTAINER_TYPES).includes(preset.containerType)) {
         errors.push(`Invalid containerType: ${preset.containerType}`);
+    }
+
+    // Special container specific validation
+    if (preset.containerType === CONTAINER_TYPES.SPECIAL) {
+        if (!preset.specialType) {
+            errors.push('Special containers must have a specialType specified');
+        }
+        
+        // Validate virtualWidgets if present
+        if (preset.virtualWidgets && Array.isArray(preset.virtualWidgets)) {
+            preset.virtualWidgets.forEach((vw, idx) => {
+                if (!vw.type) errors.push(`VirtualWidget[${idx}]: Missing type`);
+                if (!vw.id) errors.push(`VirtualWidget[${idx}]: Missing id`);
+            });
+        }
     }
 
     return {
@@ -494,7 +512,8 @@ export function createContainerPreset(name, category, values, metadata = {}) {
         name: sanitizedName,
         category: sanitizedCategory,
         values,
-        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD
+        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD,
+        specialType: metadata.specialType // Support for special container types
     });
 
     if (!validation.valid) {
@@ -506,8 +525,12 @@ export function createContainerPreset(name, category, values, metadata = {}) {
         id: generatePresetId(sanitizedName),
         name: sanitizedName,
         category: sanitizedCategory,
-        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD, // Placeholder for special containers
+        containerType: metadata.containerType || CONTAINER_TYPES.STANDARD,
+        specialType: metadata.specialType || null, // Special container subtype (dashboard, control_panel, etc.)
         values: [...values],
+        virtualWidgets: metadata.virtualWidgets || [], // Virtual widgets for special containers
+        connections: metadata.connections || [], // Widget connections for special containers
+        settings: metadata.settings || {}, // Special container settings
         metadata: {
             source: 'manual_create',
             ...metadata

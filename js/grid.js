@@ -21,7 +21,9 @@ import {
     validateSpecialContainer,
     syncVirtualWidget,
     connectVirtualWidget,
-    disconnectVirtualWidget
+    disconnectVirtualWidget,
+    startAutoSync,
+    stopAutoSync
 } from "./specialContainers.js";
 import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 import { createVirtualWidgetDOM } from "./virtualWidgets.js";

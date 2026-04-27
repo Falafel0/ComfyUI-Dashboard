@@ -276,7 +276,40 @@ function createDisplayWidget(virtualWidget, options) {
 }
 
 /**
- * Image widget
+ * Get ComfyUI image URL from filename
+ */
+function getComfyImageUrl(filename, type = "input") {
+    if (!filename) return "";
+    let cleanName = filename;
+    let subfolder = "";
+    if (filename.includes("/")) {
+        const parts = filename.split("/");
+        cleanName = parts.pop();
+        subfolder = parts.join("/");
+    } else if (filename.includes("\\")) {
+        const parts = filename.split("\\");
+        cleanName = parts.pop();
+        subfolder = parts.join("\\");
+    }
+    return `/view?filename=${encodeURIComponent(cleanName)}&type=${type}&subfolder=${encodeURIComponent(subfolder)}&t=${Date.now()}`;
+}
+
+/**
+ * Check if value is an image path/URL
+ */
+function isImagePath(value) {
+    if (!value || typeof value !== 'string') return false;
+    return value.startsWith('/') || 
+           value.includes('://') || 
+           value.endsWith('.png') || 
+           value.endsWith('.jpg') || 
+           value.endsWith('.jpeg') || 
+           value.endsWith('.webp') || 
+           value.endsWith('.gif');
+}
+
+/**
+ * Image widget with dynamic node image support
  */
 function createImageWidget(virtualWidget, options) {
     const imgContainer = document.createElement('div');
@@ -285,11 +318,28 @@ function createImageWidget(virtualWidget, options) {
     const img = document.createElement('img');
     img.className = 'vw-image';
     
-    if (virtualWidget.value) {
-        img.src = virtualWidget.value;
-    } else {
-        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJhcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-    }
+    // Set initial image source
+    const updateImageSource = () => {
+        if (virtualWidget.value) {
+            if (isImagePath(virtualWidget.value)) {
+                // Handle ComfyUI image paths
+                if (virtualWidget.value.startsWith('/')) {
+                    img.src = getComfyImageUrl(virtualWidget.value);
+                } else {
+                    img.src = virtualWidget.value;
+                }
+            } else {
+                img.src = virtualWidget.value;
+            }
+        } else {
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJhcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+        }
+    };
+    
+    updateImageSource();
+    
+    // Store update function for external updates
+    imgContainer.updateImageSource = updateImageSource;
 
     const fit = virtualWidget.config.fit || 'contain';
     img.style.objectFit = fit;
@@ -504,6 +554,19 @@ async function syncWithRealWidget(virtualWidget) {
  * Update virtual widget value from external source
  */
 export function updateVirtualWidgetValue(wrapper, newValue) {
+    // Handle image widgets specially
+    if (wrapper.classList.contains('vw-image-container') && wrapper.updateImageSource) {
+        const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
+        if (virtualWidgetId && window.specialContainersState) {
+            const vw = window.specialContainersState.find(v => v.id === virtualWidgetId);
+            if (vw) {
+                vw.value = newValue;
+                wrapper.updateImageSource();
+                return;
+            }
+        }
+    }
+    
     const input = wrapper.querySelector('input, textarea, select');
     if (!input) return;
 

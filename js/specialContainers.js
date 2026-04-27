@@ -286,7 +286,7 @@ export function stopAutoSync(intervalId) {
 }
 
 /**
- * Validate a special container configuration
+ * Validate a special container configuration with type-specific rules
  */
 export function validateSpecialContainer(config) {
     const errors = [];
@@ -298,25 +298,162 @@ export function validateSpecialContainer(config) {
     
     if (!config.specialType || !Object.values(SPECIAL_CONTAINER_TYPES).includes(config.specialType)) {
         errors.push(`Invalid special container type: ${config.specialType}`);
+        return { valid: false, errors, warnings };
     }
-    
-    // Validate virtual widgets
-    if (config.virtualWidgets && Array.isArray(config.virtualWidgets)) {
-        config.virtualWidgets.forEach((vw, idx) => {
+
+    const { specialType, virtualWidgets } = config;
+
+    // Type-specific restrictions and validations
+    if (specialType === SPECIAL_CONTAINER_TYPES.CONTROL_PANEL) {
+        const interactiveTypes = [
+            SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN
+        ];
+        
+        if (virtualWidgets && Array.isArray(virtualWidgets)) {
+            virtualWidgets.forEach((vw, idx) => {
+                if (!interactiveTypes.includes(vw.type)) {
+                    errors.push(`Control Panel only allows interactive widgets. Widget ${idx} (${vw.type}) is invalid.`);
+                }
+            });
+        }
+        
+        // Control Panel specific: Max 20 interactive controls recommended
+        if (virtualWidgets && virtualWidgets.length > 20) {
+            warnings.push(`Control Panel has ${virtualWidgets.length} widgets. Performance may degrade with >20 controls.`);
+        }
+    }
+
+    if (specialType === SPECIAL_CONTAINER_TYPES.FORM) {
+        const inputTypes = [
+            SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER
+        ];
+        
+        if (virtualWidgets && Array.isArray(virtualWidgets)) {
+            virtualWidgets.forEach((vw, idx) => {
+                if (!inputTypes.includes(vw.type)) {
+                    errors.push(`Form only allows input widgets. Widget ${idx} (${vw.type}) is invalid.`);
+                }
+            });
+            
+            // Form must have at least one submit button
+            const hasButton = virtualWidgets.some(vw => vw.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON);
+            if (!hasButton) {
+                warnings.push('Form should have at least one button widget for submission.');
+            }
+        }
+        
+        // Form specific: Max width constraint enforced in rendering
+        if (config.settings?.maxWidth && config.settings.maxWidth < 400) {
+            warnings.push('Form width less than 400px may cause layout issues.');
+        }
+    }
+
+    if (specialType === SPECIAL_CONTAINER_TYPES.MONITOR) {
+        // Monitor restriction: Optimized for display widgets
+        const displayTypes = [
+            SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_CHART,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE
+        ];
+        
+        if (virtualWidgets && Array.isArray(virtualWidgets)) {
+            virtualWidgets.forEach((vw, idx) => {
+                if (!displayTypes.includes(vw.type) && vw.type !== SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE) {
+                    warnings.push(`Monitor widget ${idx} (${vw.type}) might not render optimally. Consider using display types.`);
+                }
+            });
+            
+            // Monitor optimized for up to 16 widgets in grid
+            if (virtualWidgets.length > 16) {
+                errors.push(`Monitor type is optimized for up to 16 widgets. Current: ${virtualWidgets.length}`);
+            }
+        }
+        
+        // Monitor requires refresh rate setting
+        if (!config.settings?.updateInterval) {
+            config.settings = config.settings || {};
+            config.settings.updateInterval = 500; // Default 500ms
+        }
+    }
+
+    if (specialType === SPECIAL_CONTAINER_TYPES.GALLERY) {
+        // Gallery restriction: Visual content preferred
+        const visualTypes = [
+            SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE,
+            SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY,
+            SPECIAL_WIDGET_TYPES.CUSTOM_HTML
+        ];
+        
+        if (virtualWidgets && Array.isArray(virtualWidgets)) {
+            virtualWidgets.forEach((vw, idx) => {
+                if (!visualTypes.includes(vw.type) && vw.type !== SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+                    warnings.push(`Gallery widget ${idx} (${vw.type}) might not render optimally in gallery mode.`);
+                }
+            });
+            
+            // Gallery needs at least one image or display
+            const hasVisual = virtualWidgets.some(vw => visualTypes.includes(vw.type));
+            if (!hasVisual) {
+                errors.push('Gallery must contain at least one image or display widget.');
+            }
+        }
+        
+        // Gallery column constraints
+        if (config.settings?.columns) {
+            if (config.settings.columns < 1 || config.settings.columns > 12) {
+                errors.push('Gallery columns must be between 1 and 12.');
+            }
+        }
+    }
+
+    if (specialType === SPECIAL_CONTAINER_TYPES.DASHBOARD) {
+        // Dashboard is most flexible - allow all widget types
+        if (virtualWidgets && virtualWidgets.length > 50) {
+            warnings.push(`Dashboard has ${virtualWidgets.length} widgets. Consider splitting into multiple dashboards.`);
+        }
+    }
+
+    // Validate virtual widgets common checks
+    if (virtualWidgets && Array.isArray(virtualWidgets)) {
+        virtualWidgets.forEach((vw, idx) => {
             if (!vw.type || !Object.values(SPECIAL_WIDGET_TYPES).includes(vw.type)) {
-                errors.push(`Virtual widget ${idx}: Invalid type`);
+                errors.push(`Virtual widget ${idx}: Invalid type "${vw.type}"`);
             }
             if (!vw.id) {
-                warnings.push(`Virtual widget ${idx}: Missing ID`);
+                errors.push(`Virtual widget ${idx}: Missing unique ID`);
             }
             
             // Validate connection if exists
             if (vw.connection) {
                 if (!vw.connection.nodeId) {
-                    warnings.push(`Virtual widget ${vw.id}: Connection missing nodeId`);
+                    errors.push(`Virtual widget ${vw.id || idx}: Connection missing nodeId`);
                 }
-                if (vw.connection.widgetIndex === undefined) {
-                    warnings.push(`Virtual widget ${vw.id}: Connection missing widgetIndex`);
+                if (vw.connection.widgetIndex === undefined || vw.connection.widgetIndex < 0) {
+                    errors.push(`Virtual widget ${vw.id || idx}: Connection missing or invalid widgetIndex`);
+                }
+                
+                // Validate direction
+                const validDirections = ['input', 'output', 'bidirectional'];
+                if (vw.connection.direction && !validDirections.includes(vw.connection.direction)) {
+                    errors.push(`Virtual widget ${vw.id || idx}: Invalid connection direction`);
+                }
+            }
+            
+            // Type-specific config validation
+            if (vw.type === SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER || 
+                vw.type === SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER) {
+                if (vw.config.min !== null && vw.config.max !== null && vw.config.min >= vw.config.max) {
+                    errors.push(`Virtual widget ${vw.id || idx}: min must be less than max`);
                 }
             }
         });

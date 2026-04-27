@@ -26,7 +26,7 @@ import {
     stopAutoSync
 } from "./specialContainers.js";
 import { openSpecialContainerEditor } from "./specialContainerEditor.js";
-import { createVirtualWidgetDOM } from "./virtualWidgets.js";
+import { createVirtualWidgetDOM, applySpecialContainerLayout } from "./virtualWidgets.js";
 
 /**
  * Применяет пресет к виджетам конкретного контейнера
@@ -1243,6 +1243,9 @@ export function renderGridItemContent(domElement, config) {
 
         // Render virtual widgets for special containers
         if (config.containerType === CONTAINER_TYPES.SPECIAL && config.virtualWidgets) {
+            // Apply special container type-specific layout
+            applySpecialContainerLayout(body, config);
+
             config.virtualWidgets.forEach(vw => {
                 const virtualKey = `virtual_${vw.id}`;
                 newWidgetKeys.add(virtualKey);

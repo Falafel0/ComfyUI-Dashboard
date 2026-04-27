@@ -525,22 +525,25 @@ function formatValue(value, format) {
 }
 
 /**
- * Apply styles to virtual widget wrapper
+ * Apply styles to virtual widget wrapper with advanced styling support
  */
 function applyVirtualWidgetStyles(wrapper, virtualWidget, options) {
-    if (options.width) {
+    const styles = virtualWidget.styles || {};
+    
+    // Legacy options support
+    if (options.width && !styles.width) {
         wrapper.style.width = options.width;
     }
     
-    if (options.fontSize) {
+    if (options.fontSize && !styles.fontSize) {
         wrapper.style.fontSize = options.fontSize + 'px';
     }
 
-    if (options.textAlign) {
+    if (options.textAlign && !styles.textAlign) {
         wrapper.style.textAlign = options.textAlign;
     }
 
-    if (options.customHeight) {
+    if (options.customHeight && !styles.height) {
         const hStr = String(options.customHeight).trim().toLowerCase();
         if (hStr === 'auto' || hStr === '100%' || hStr === 'flex') {
             wrapper.classList.add('gw-widget-wrapper--grows');
@@ -551,6 +554,110 @@ function applyVirtualWidgetStyles(wrapper, virtualWidget, options) {
 
     if (options.readOnly) {
         wrapper.classList.add('a11-readonly-widget');
+    }
+
+    // Advanced Styling Engine
+    if (Object.keys(styles).length > 0) {
+        applyAdvancedStyling(wrapper, styles, virtualWidget.type);
+    }
+}
+
+/**
+ * Apply Advanced Styling including Glassmorphism, Gradients, Shadows, and Typography
+ */
+function applyAdvancedStyling(element, styles, type) {
+    if (!styles) return;
+
+    const s = styles;
+    const rootStyle = element.style;
+
+    // 1. Layout & Dimensions
+    if (s.width) rootStyle.width = typeof s.width === 'number' ? `${s.width}%` : s.width;
+    if (s.minHeight) rootStyle.minHeight = `${s.minHeight}px`;
+    if (s.flexGrow) rootStyle.flexGrow = s.flexGrow;
+    if (s.height) rootStyle.height = typeof s.height === 'number' ? `${s.height}px` : s.height;
+    
+    // 2. Backgrounds (Solid, Gradient, Glass)
+    if (s.backgroundType === 'gradient') {
+        const angle = s.gradientAngle || 45;
+        const stops = s.gradientStops || ['#3b82f6', '#8b5cf6'];
+        rootStyle.background = `linear-gradient(${angle}deg, ${stops.join(', ')})`;
+    } else if (s.backgroundType === 'glass') {
+        rootStyle.background = s.glassColor || 'rgba(255, 255, 255, 0.1)';
+        rootStyle.backdropFilter = `blur(${s.blurAmount || 10}px)`;
+        rootStyle.webkitBackdropFilter = `blur(${s.blurAmount || 10}px)`;
+        if (s.saturation) rootStyle.backdropFilter += ` saturate(${s.saturation}%)`;
+    } else if (s.backgroundType === 'image') {
+        rootStyle.backgroundImage = `url(${s.backgroundImage})`;
+        rootStyle.backgroundSize = s.backgroundSize || 'cover';
+        rootStyle.backgroundPosition = s.backgroundPosition || 'center';
+    } else {
+        rootStyle.background = s.backgroundColor || 'var(--bg-secondary)';
+    }
+
+    // 3. Multi-Layer Borders
+    if (s.borderStyle !== 'none') {
+        if (s.borderStyle === 'double') {
+            rootStyle.border = `double ${s.borderWidth || 2}px ${s.borderColor || 'var(--border-color)'}`;
+        } else if (s.borderStyle === 'dashed-custom') {
+            rootStyle.border = `${s.borderWidth || 2}px dashed ${s.borderColor || 'var(--border-color)'}`;
+            rootStyle.borderRadius = `${s.borderRadius || 4}px`;
+        } else if (s.borderStyle === 'dotted-custom') {
+            rootStyle.border = `${s.borderWidth || 2}px dotted ${s.borderColor || 'var(--border-color)'}`;
+            rootStyle.borderRadius = `${s.borderRadius || 4}px`;
+        } else {
+            rootStyle.border = `${s.borderWidth || 1}px ${s.borderStyle || 'solid'} ${s.borderColor || 'var(--border-color)'}`;
+        }
+    } else {
+        rootStyle.border = 'none';
+    }
+    
+    // Inner Border/Overlay
+    if (s.innerBorderWidth > 0) {
+        const existingShadow = rootStyle.boxShadow || '';
+        rootStyle.boxShadow = `${existingShadow} inset 0 0 0 ${s.innerBorderWidth}px ${s.innerBorderColor || 'rgba(255,255,255,0.1)'}`.trim();
+    }
+
+    // 4. Dynamic Shadows
+    if (s.shadowEnabled) {
+        const color = s.shadowColor || 'rgba(0,0,0,0.2)';
+        const x = s.shadowX || 0;
+        const y = s.shadowY || 4;
+        const blur = s.shadowBlur || 8;
+        const spread = s.shadowSpread || 0;
+        const existingShadow = rootStyle.boxShadow || '';
+        rootStyle.boxShadow = `${existingShadow} ${x}px ${y}px ${blur}px ${spread}px ${color}`.trim();
+    }
+
+    // 5. Typography
+    if (s.fontFamily) rootStyle.fontFamily = s.fontFamily;
+    if (s.fontSize) rootStyle.fontSize = `${s.fontSize}px`;
+    if (s.fontWeight) rootStyle.fontWeight = s.fontWeight;
+    if (s.textColor) rootStyle.color = s.textColor;
+    if (s.textAlign) rootStyle.textAlign = s.textAlign;
+    if (s.letterSpacing) rootStyle.letterSpacing = `${s.letterSpacing}px`;
+    if (s.lineHeight) rootStyle.lineHeight = s.lineHeight;
+    if (s.textTransform) rootStyle.textTransform = s.textTransform;
+    if (s.fontStyle) rootStyle.fontStyle = s.fontStyle;
+    if (s.textDecoration) rootStyle.textDecoration = s.textDecoration;
+
+    // 6. Radius & Spacing
+    if (s.borderRadius !== undefined) rootStyle.borderRadius = `${s.borderRadius}px`;
+    if (s.padding !== undefined) rootStyle.padding = `${s.padding}px`;
+    if (s.margin !== undefined) rootStyle.margin = `${s.margin}px`;
+    if (s.gap) rootStyle.gap = `${s.gap}px`;
+
+    // 7. Transitions for smooth state changes (prevents twitch)
+    rootStyle.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    // 8. CSS Containment for performance
+    rootStyle.contain = 'layout style paint';
+    
+    // 9. Interactive States (Hover, Active, Focus) - via data attributes
+    if (s.hoverBackgroundColor || s.hoverTextColor) {
+        element.dataset.hasHoverStyles = 'true';
+        if (s.hoverBackgroundColor) element.style.setProperty('--hover-bg', s.hoverBackgroundColor);
+        if (s.hoverTextColor) element.style.setProperty('--hover-text', s.hoverTextColor);
     }
 }
 

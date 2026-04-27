@@ -924,9 +924,9 @@
 /* Button */
 .vw-button {
     padding: 10px 16px;
-    background: var(--a11-accent);
-    color: white;
-    border: none;
+    background: var(--a11-input);
+    color: var(--a11-text);
+    border: 1px solid var(--a11-border);
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
@@ -935,9 +935,16 @@
 }
 
 .vw-button:hover {
-    background: color-mix(in srgb, var(--a11-accent), black 15%);
+    background: color-mix(in srgb, var(--a11-accent), transparent 80%);
+    border-color: var(--a11-accent);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+.vw-button.active {
+    background: var(--a11-accent);
+    color: white;
+    border-color: var(--a11-accent);
+    box-shadow: 0 4px 12px rgba(var(--a11-accent-rgb, 99, 102, 241), 0.3);
 }
 
 .vw-button:active {
@@ -976,6 +983,13 @@
 
 .vw-button-icon:active {
     transform: scale(0.95);
+}
+
+.vw-button-icon.active {
+    background: var(--a11-accent);
+    color: white;
+    border-color: var(--a11-accent);
+    box-shadow: 0 0 10px rgba(var(--a11-accent-rgb, 99, 102, 241), 0.5);
 }
 
 .vw-button-icon:disabled {

@@ -23,7 +23,8 @@ import {
     connectVirtualWidget,
     disconnectVirtualWidget,
     startAutoSync,
-    stopAutoSync
+    stopAutoSync,
+    virtualWidgetStates
 } from "./specialContainers.js";
 import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 import { createVirtualWidgetDOM, applySpecialContainerLayout } from "./virtualWidgets.js";
@@ -1249,6 +1250,11 @@ export function renderGridItemContent(domElement, config) {
             config.virtualWidgets.forEach(vw => {
                 const virtualKey = `virtual_${vw.id}`;
                 newWidgetKeys.add(virtualKey);
+
+                // Restore saved state before rendering
+                if (virtualWidgetStates.has(vw.id)) {
+                    vw.value = virtualWidgetStates.get(vw.id);
+                }
 
                 const options = {
                     hideLabel: vw.hideLabel,

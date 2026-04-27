@@ -6,6 +6,16 @@
 import { state } from "./state.js";
 import { CONTAINER_TYPES } from "./presetManager.js";
 
+// Global state storage for virtual widget values
+export const virtualWidgetStates = new Map();
+
+// Initialize window object for global access (used by virtualWidgets.js)
+if (typeof window !== 'undefined') {
+    window.virtualWidgetStates = virtualWidgetStates;
+    // Legacy alias for compatibility
+    window.specialContainersState = [];
+}
+
 // Special container type definitions
 export const SPECIAL_CONTAINER_TYPES = {
     DASHBOARD: 'dashboard',      // Dashboard with multiple virtual widgets

@@ -1,1 +1,1 @@
-(js/specialContainerEditor.js)
+(js/grid.js, js/specialContainers.js, js/virtualWidgets.js)

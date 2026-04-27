@@ -373,6 +373,31 @@ function createButtonWidget(virtualWidget, options, onValueChange) {
             }
             break;
             
+        case BUTTON_APPEARANCE_TYPES.RADIO:
+            button = document.createElement('label');
+            button.className = 'vw-button vw-radio';
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.className = 'vw-radio-input';
+            if (virtualWidget.value) radioInput.checked = true;
+            
+            // Use name attribute for grouping radios in same container
+            radioInput.name = `vw-radio-group-${containerId || 'default'}`;
+            
+            radioInput.addEventListener('change', async (e) => {
+                virtualWidget.value = e.target.checked;
+                await handleButtonClick(virtualWidget, button, onValueChange);
+            });
+            
+            button.appendChild(radioInput);
+            if (showLabel) {
+                const radioLabel = document.createElement('span');
+                radioLabel.className = 'vw-radio-label';
+                radioLabel.textContent = label;
+                button.appendChild(radioLabel);
+            }
+            break;
+            
         case BUTTON_APPEARANCE_TYPES.ICON:
             button = document.createElement('button');
             button.className = 'vw-button vw-icon-button';

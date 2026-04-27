@@ -1,1 +1,1 @@
-Nothing should be ignored based on the provided file changes, as they only include JavaScript source files (.js) which are not build artifacts, dependencies, or temporary files.
+(js/virtualWidgets.js)

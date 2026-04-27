@@ -1,10 +1,11 @@
 import { app } from "../../scripts/app.js";
 import { state, saveSettings, resetSettings } from "./state.js";
 import { updateDynamicStyles } from "./styles.js";
-import { addGridItem, refreshActiveItem, updateGraphExtra, applyGridState, refreshContainerList, initGrid, renderGlobalPanel, renderRightPanel, renderGridItemContent, openGroupSettings } from "./grid.js";
+import { addGridItem, refreshActiveItem, updateGraphExtra, applyGridState, refreshContainerList, initGrid, renderGlobalPanel, renderRightPanel, renderGridItemContent, openGroupSettings, openSpecialContainerCreator } from "./grid.js";
 import { LayoutTemplateManager, UIPreferencesManager, validateSettings, migrateSettings } from "./settingsManager.js";
 import { DOMManager } from "./widgets/CustomDOMInterpreter.js";
 import { openPresetManagerModal } from "./widgets/PresetManagerUI.js";
+import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 
 export function toggleWebUIStudio() {
     const overlay = document.getElementById("a11-overlay");
@@ -695,8 +696,45 @@ export function setupUIListeners() {
 
     document.getElementById("a11-add-new").onclick = () => {
         if (!state.isEditMode) return;
-        addGridItem({ title: "Container", widgets: [] }, { w: 12, h: 2 });
-        setTimeout(refreshContainerList, 100);
+        
+        // Create a menu to choose between regular and special container
+        const menu = document.createElement("div");
+        menu.className = "a11-modal open";
+        menu.innerHTML = `
+            <div class="a11-modal-content" style="width:450px;">
+                <div class="a11-modal-title">➕ Add New Container</div>
+                <div class="a11-modal-body">
+                    <div class="a11-settings-block">
+                        <div class="a11-settings-title">Select Container Type</div>
+                        <button id="add-regular-container-btn" class="a11-btn" style="width:100%; margin-bottom:10px; padding:15px; text-align:left;">
+                            <strong>📦 Regular Container</strong><br>
+                            <small style="opacity:0.7;">Standard container with widgets from nodes</small>
+                        </button>
+                        <button id="add-special-container-btn" class="a11-btn" style="width:100%; padding:15px; text-align:left; background:rgba(234,88,12,0.1); border-color:var(--a11-accent);">
+                            <strong>✨ Special Container</strong><br>
+                            <small style="opacity:0.7;">Autonomous container with virtual widgets</small>
+                        </button>
+                    </div>
+                </div>
+                <div class="a11-modal-footer">
+                    <button class="a11-btn" id="cancel-add-container">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(menu);
+        
+        menu.querySelector("#cancel-add-container").onclick = () => menu.remove();
+        
+        menu.querySelector("#add-regular-container-btn").onclick = () => {
+            menu.remove();
+            addGridItem({ title: "Container", widgets: [] }, { w: 12, h: 2 });
+            setTimeout(refreshContainerList, 100);
+        };
+        
+        menu.querySelector("#add-special-container-btn").onclick = () => {
+            menu.remove();
+            openSpecialContainerCreator();
+        };
     };
 
     document.getElementById("a11-tab-settings").onclick = () => {

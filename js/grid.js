@@ -9,8 +9,17 @@ import {
     PRESET_CATEGORIES,
     DEFAULT_SORT_ORDER,
     createContainerPreset,
-    validateContainerPreset
+    validateContainerPreset,
+    CONTAINER_TYPES
 } from "./presetManager.js";
+import { 
+    createSpecialContainer,
+    SPECIAL_CONTAINER_TYPES,
+    SPECIAL_WIDGET_TYPES,
+    serializeSpecialContainer,
+    validateSpecialContainer
+} from "./specialContainers.js";
+import { openSpecialContainerEditor } from "./specialContainerEditor.js";
 
 /**
  * Применяет пресет к виджетам конкретного контейнера
@@ -1089,7 +1098,15 @@ export function renderGridItemContent(domElement, config) {
         controlsDiv.appendChild(createSelect(DENSITY_MODES, config.widgetDensity, (v) => { config.widgetDensity = v; }));
 
         const gearBtn = document.createElement("span"); gearBtn.className = "gw-icon-btn"; gearBtn.innerText = "⚙";
-        gearBtn.onclick = (e) => { e.stopPropagation(); openContainerSettings(config, domElement); };
+        gearBtn.onclick = (e) => { 
+            e.stopPropagation(); 
+            // Check if this is a special container
+            if (config.containerType === CONTAINER_TYPES.SPECIAL) {
+                openSpecialContainerSettings(config, domElement);
+            } else {
+                openContainerSettings(config, domElement); 
+            }
+        };
         controlsDiv.appendChild(gearBtn);
     }
 
@@ -1757,6 +1774,41 @@ export function refreshActiveItem() {
     if (!sel || !sel.value) return;
     const gridItem = document.querySelector(`.grid-stack-item[gs-id="${sel.value}"]`);
     if (gridItem) { const content = gridItem.querySelector(".grid-stack-item-content"); const config = JSON.parse(content.dataset.config); renderGridItemContent(content, config); updateGraphExtra(true); }
+}
+
+/**
+ * Open the special container creator dialog
+ */
+export function openSpecialContainerCreator() {
+    // Open the special container editor with no existing config (create mode)
+    openSpecialContainerEditor(null, (config, isDelete) => {
+        if (isDelete || !config) return;
+        
+        // Add the special container to the grid
+        addGridItem(config, { w: 12, h: 4 });
+        setTimeout(refreshContainerList, 100);
+    });
+}
+
+/**
+ * Open settings for a special container
+ */
+export function openSpecialContainerSettings(config, domElement) {
+    openSpecialContainerEditor(config, (updatedConfig, isDelete) => {
+        if (isDelete) {
+            // Remove the container from grid
+            const gridItem = domElement.closest(".grid-stack-item");
+            if (gridItem && state.grid) {
+                state.grid.removeWidget(gridItem);
+            }
+        } else if (updatedConfig) {
+            // Update the config and re-render
+            domElement.dataset.config = JSON.stringify(updatedConfig);
+            renderGridItemContent(domElement, updatedConfig);
+        }
+        updateGraphExtra(true);
+        refreshContainerList();
+    });
 }
 
 export function syncNodeMonitors() { }

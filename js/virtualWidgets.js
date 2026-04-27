@@ -332,6 +332,15 @@ function createDropdownWidget(virtualWidget, options, onValueChange) {
 function createButtonWidget(virtualWidget, options, onValueChange) {
     const buttonType = virtualWidget.config.buttonType || 'button';
     
+    // Ensure value is synchronized before creating the button
+    if (virtualWidgetStates.has(virtualWidget.id)) {
+        virtualWidget.value = virtualWidgetStates.get(virtualWidget.id);
+    } else if (virtualWidget.config?.savedValue !== undefined) {
+        virtualWidget.value = virtualWidget.config.savedValue;
+    } else if (virtualWidget.value === undefined) {
+        virtualWidget.value = false;
+    }
+    
     // Different appearance types for buttons
     switch (buttonType) {
         case 'toggle':
@@ -358,6 +367,11 @@ function createStandardButton(virtualWidget, options, onValueChange) {
     button.className = 'vw-button';
     button.textContent = virtualWidget.config.label || virtualWidget.name || 'Button';
     
+    // Add active class based on state
+    if (virtualWidget.value) {
+        button.classList.add('active');
+    }
+    
     if (virtualWidget.config.accentColor) {
         button.style.backgroundColor = virtualWidget.config.accentColor;
     }
@@ -374,6 +388,13 @@ function createStandardButton(virtualWidget, options, onValueChange) {
             virtualWidgetStates.set(virtualWidget.id, virtualWidget.value);
             if (virtualWidget.config) {
                 virtualWidget.config.savedValue = virtualWidget.value;
+            }
+            
+            // Update visual active class
+            if (virtualWidget.value) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
             }
             
             await executeVirtualButtonAction(button, virtualWidget, onValueChange);
@@ -394,7 +415,7 @@ function createButtonAsToggle(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-toggle-input';
     checkbox.id = `vw-btn-toggle-${virtualWidget.id}`;
-    // Ensure we use the current value from virtualWidgetStates or config.savedValue
+    // Use the already synchronized virtualWidget.value
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -443,7 +464,7 @@ function createButtonAsCheckbox(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-checkbox-input';
     checkbox.id = `vw-btn-checkbox-${virtualWidget.id}`;
-    // Ensure we use the current value from virtualWidgetStates or config.savedValue
+    // Use the already synchronized virtualWidget.value
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -500,7 +521,7 @@ function createButtonAsRadio(virtualWidget, options, onValueChange) {
     radio.className = 'vw-button-radio-input';
     radio.id = `vw-btn-radio-${virtualWidget.id}`;
     radio.name = `vw-btn-radio-group-${virtualWidget.containerId || 'default'}`;
-    // Ensure we use the current value from virtualWidgetStates or config.savedValue
+    // Use the already synchronized virtualWidget.value
     radio.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -545,7 +566,7 @@ function createButtonAsSwitch(virtualWidget, options, onValueChange) {
     checkbox.type = 'checkbox';
     checkbox.className = 'vw-button-switch-input';
     checkbox.id = `vw-btn-switch-${virtualWidget.id}`;
-    // Ensure we use the current value from virtualWidgetStates or config.savedValue
+    // Use the already synchronized virtualWidget.value
     checkbox.checked = !!virtualWidget.value;
     
     if (options.readOnly) {
@@ -606,6 +627,11 @@ function createButtonAsIcon(virtualWidget, options, onValueChange) {
     iconButton.textContent = iconContent;
     iconButton.title = virtualWidget.name || 'Icon Button';
     
+    // Add active class based on state
+    if (virtualWidget.value) {
+        iconButton.classList.add('active');
+    }
+    
     if (virtualWidget.config.accentColor) {
         iconButton.style.color = virtualWidget.config.accentColor;
     }
@@ -622,6 +648,13 @@ function createButtonAsIcon(virtualWidget, options, onValueChange) {
             virtualWidgetStates.set(virtualWidget.id, virtualWidget.value);
             if (virtualWidget.config) {
                 virtualWidget.config.savedValue = virtualWidget.value;
+            }
+            
+            // Update visual active class
+            if (virtualWidget.value) {
+                iconButton.classList.add('active');
+            } else {
+                iconButton.classList.remove('active');
             }
             
             await executeVirtualButtonAction(iconButton, virtualWidget, onValueChange);

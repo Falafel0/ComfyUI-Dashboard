@@ -373,6 +373,7 @@ function openGlobalSettings() {
                             <div class="a11-settings-title">Grid Configuration</div>
                             <div class="a11-setting-row"><label>Grid Density (Cell Height px)</label><input type="number" id="gs-density" value="${state.settings.gridCellHeight}" min="30" max="200"></div>
                             <div class="a11-setting-row"><label>Grid Margin (Gap px)</label><input type="number" id="gs-margin" value="${state.settings.gridMargin !== undefined ? state.settings.gridMargin : 5}" min="0" max="50"></div>
+                            <div class="a11-setting-row"><label>Seamless Mode (No Borders)</label><input type="checkbox" id="gs-seamless" ${state.settings.seamlessMode ? "checked" : ""}></div>
                         </div>
                         <div class="a11-settings-block">
                             <div class="a11-settings-title">Gallery & Performance</div>
@@ -470,6 +471,7 @@ function openGlobalSettings() {
 
         state.settings.gridCellHeight = newDensity;
         state.settings.gridMargin = newMargin;
+        state.settings.seamlessMode = modal.querySelector("#gs-seamless").checked;
 
         state.settings.themeColor = modal.querySelector("#gs-color").value;
         state.settings.bgColor = modal.querySelector("#gs-bg").value.trim();

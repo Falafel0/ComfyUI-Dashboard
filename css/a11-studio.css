@@ -531,6 +531,30 @@
     box-shadow: var(--a11-shadow-sm); 
 }
 
+/* Seamless mode override - removes borders visually */
+.seamless-mode .gw-view-card,
+.seamless-mode .gw-view-flat,
+.seamless-mode .gw-view-outlined,
+.seamless-mode .gw-view-glass,
+.seamless-mode .gw-view-minimal,
+.seamless-mode .gw-view-bordered,
+.seamless-mode .gw-view-soft {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+/* Special containers - placeholder for future development */
+/* These containers have autonomous behavior different from standard ones */
+.gw-container-special {
+    /* Placeholder: Future special container styles */
+    /* Will support independent positioning, custom rendering, etc. */
+}
+
+.gw-container-special .gw-bar {
+    /* Placeholder: Special header bar styling */
+}
+
 .gw-view-flat { 
     background: transparent; 
     border: 1px solid var(--a11-border-light); 

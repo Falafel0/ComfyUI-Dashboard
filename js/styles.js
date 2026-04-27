@@ -60,6 +60,16 @@ export function updateDynamicStyles() {
     root.style.setProperty('--a11-transition-easing-custom', state.settings.transitionEasing || 'cubic-bezier(0.4, 0, 0.2, 1)');
     root.style.setProperty('--a11-animations-enabled-custom', state.settings.enableAnimations ? 1 : 0);
     
+    // ─── Seamless Mode ───
+    const overlay = document.getElementById('a11-overlay');
+    if (overlay) {
+        if (state.settings.seamlessMode) {
+            overlay.classList.add('seamless-mode');
+        } else {
+            overlay.classList.remove('seamless-mode');
+        }
+    }
+    
     // ─── ComfyUI Integration ───
     if (state.settings.comfyThemeSync) {
         // Sync with ComfyUI theme variables automatically via CSS var() fallbacks

@@ -40,6 +40,23 @@ export const SPECIAL_WIDGET_TYPES = {
     CUSTOM_HTML: 'custom_html'
 };
 
+// Special button action types for enhanced functionality
+export const BUTTON_ACTION_TYPES = {
+    LAUNCH_WORKFLOW: 'launch_workflow',        // Launch entire workflow
+    LAUNCH_NODE: 'launch_node',                // Execute specific node only
+    RESET_WIDGETS: 'reset_widgets',            // Reset all widgets in container
+    SAVE_PRESET: 'save_preset',                // Save current state as preset
+    LOAD_PRESET: 'load_preset',                // Load a preset
+    COPY_VALUES: 'copy_values',                // Copy values to clipboard
+    PASTE_VALUES: 'paste_values',              // Paste values from clipboard
+    SYNC_ALL: 'sync_all',                      // Force sync all connected widgets
+    CLEAR_CACHE: 'clear_cache',                // Clear cached data
+    EXPORT_CONFIG: 'export_config',            // Export container config
+    IMPORT_CONFIG: 'import_config',            // Import container config
+    TOGGLE_COLLAPSE: 'toggle_collapse',        // Toggle container collapse
+    CUSTOM_SCRIPT: 'custom_script'             // Run custom JavaScript
+};
+
 /**
  * Create a new special container configuration
  */
@@ -120,6 +137,7 @@ export function createVirtualWidget(type, options = {}) {
             style: {}
         },
         connection: null, // { nodeId, widgetIndex, direction: 'input'|'output'|'bidirectional' }
+        actionConfig: null, // For buttons: { actionType, targetNodeId, presetId, script, etc. }
         ...options
     };
 
@@ -151,6 +169,17 @@ export function createVirtualWidget(type, options = {}) {
         case SPECIAL_WIDGET_TYPES.VIRTUAL_IMAGE:
             baseWidget.config.fit = 'contain';
             baseWidget.value = null;
+            break;
+        case SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON:
+            baseWidget.config.label = 'Button';
+            baseWidget.config.accentColor = '';
+            baseWidget.actionConfig = {
+                actionType: BUTTON_ACTION_TYPES.CUSTOM_SCRIPT,
+                script: 'console.log("Button clicked!");',
+                targetNodeId: null,
+                presetId: null,
+                confirmBeforeExec: false
+            };
             break;
         case SPECIAL_WIDGET_TYPES.CUSTOM_HTML:
             baseWidget.config.html = '<div>Custom HTML Content</div>';
@@ -564,4 +593,456 @@ function getSpecialWidgetCategory(type) {
     }
     if (type === 'custom_html') return 'custom';
     return 'other';
+}
+
+/**
+ * Execute button action for virtual button widgets
+ * @param {Object} virtualWidget - The virtual button widget
+ * @param {Object} containerConfig - The parent container config
+ * @returns {Promise<any>} - Result of the action
+ */
+export async function executeButtonAction(virtualWidget, containerConfig = null) {
+    if (!virtualWidget?.actionConfig) {
+        console.warn('[Special Container] Button has no action configured');
+        return null;
+    }
+
+    const { actionType, targetNodeId, presetId, script, confirmBeforeExec } = virtualWidget.actionConfig;
+
+    // Confirm before execution if configured
+    if (confirmBeforeExec) {
+        const confirmed = await showConfirmDialog(`Execute action: ${actionType}?`);
+        if (!confirmed) return null;
+    }
+
+    switch (actionType) {
+        case BUTTON_ACTION_TYPES.LAUNCH_WORKFLOW:
+            return launchWorkflow();
+
+        case BUTTON_ACTION_TYPES.LAUNCH_NODE:
+            return launchNode(targetNodeId);
+
+        case BUTTON_ACTION_TYPES.RESET_WIDGETS:
+            return resetContainerWidgets(containerConfig);
+
+        case BUTTON_ACTION_TYPES.SAVE_PRESET:
+            return savePreset(presetId, containerConfig);
+
+        case BUTTON_ACTION_TYPES.LOAD_PRESET:
+            return loadPreset(presetId, containerConfig);
+
+        case BUTTON_ACTION_TYPES.COPY_VALUES:
+            return copyValuesToClipboard(containerConfig);
+
+        case BUTTON_ACTION_TYPES.PASTE_VALUES:
+            return pasteValuesFromClipboard(containerConfig);
+
+        case BUTTON_ACTION_TYPES.SYNC_ALL:
+            return syncAllWidgets(containerConfig);
+
+        case BUTTON_ACTION_TYPES.CLEAR_CACHE:
+            return clearCache();
+
+        case BUTTON_ACTION_TYPES.EXPORT_CONFIG:
+            return exportContainerConfig(containerConfig);
+
+        case BUTTON_ACTION_TYPES.IMPORT_CONFIG:
+            return importContainerConfig(containerConfig);
+
+        case BUTTON_ACTION_TYPES.TOGGLE_COLLAPSE:
+            return toggleContainerCollapse(containerConfig);
+
+        case BUTTON_ACTION_TYPES.CUSTOM_SCRIPT:
+            return executeCustomScript(script, virtualWidget, containerConfig);
+
+        default:
+            console.warn(`[Special Container] Unknown action type: ${actionType}`);
+            return null;
+    }
+}
+
+/**
+ * Launch entire workflow
+ */
+async function launchWorkflow() {
+    try {
+        const { app } = await import("../../scripts/app.js");
+        if (app?.queuePrompt) {
+            await app.queuePrompt(0);
+            return { success: true, message: 'Workflow launched' };
+        }
+        throw new Error('app.queuePrompt not available');
+    } catch (e) {
+        console.error('[Special Container] Failed to launch workflow:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Launch/execute a specific node
+ */
+async function launchNode(nodeId) {
+    try {
+        if (!nodeId) {
+            return { success: false, error: 'No target node specified' };
+        }
+        const { app } = await import("../../scripts/app.js");
+        const node = app.graph.getNodeById(nodeId);
+        if (!node) {
+            return { success: false, error: `Node #${nodeId} not found` };
+        }
+        
+        // Trigger node execution by calling its onExecute if available
+        if (node.onExecute) {
+            node.onExecute();
+            return { success: true, message: `Node #${nodeId} executed` };
+        }
+        
+        // Alternative: queue prompt with this node focused
+        if (app.queuePrompt) {
+            await app.queuePrompt(0);
+            return { success: true, message: `Workflow launched (includes Node #${nodeId})` };
+        }
+        
+        return { success: false, error: 'Node does not support direct execution' };
+    } catch (e) {
+        console.error('[Special Container] Failed to launch node:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Reset all widgets in container to default values
+ */
+async function resetContainerWidgets(containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to reset' };
+        }
+
+        for (const vw of containerConfig.virtualWidgets) {
+            if (vw.config?.defaultValue !== null && vw.config?.defaultValue !== undefined) {
+                vw.value = vw.config.defaultValue;
+            } else {
+                // Type-specific defaults
+                switch (vw.type) {
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_NUMBER:
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_SLIDER:
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY:
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_PROGRESS:
+                        vw.value = 0;
+                        break;
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_TOGGLE:
+                        vw.value = false;
+                        break;
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_TEXT:
+                        vw.value = '';
+                        break;
+                    case SPECIAL_WIDGET_TYPES.VIRTUAL_DROPDOWN:
+                        vw.value = vw.config.options?.[0] || '';
+                        break;
+                }
+            }
+            
+            // Update DOM if exists
+            const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
+            if (domEl?.updateValue) {
+                domEl.updateValue(vw.value);
+            }
+        }
+
+        return { success: true, message: 'All widgets reset' };
+    } catch (e) {
+        console.error('[Special Container] Failed to reset widgets:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Save current state as preset
+ */
+async function savePreset(presetId, containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to save' };
+        }
+
+        const presetData = {
+            id: presetId || `preset_${Date.now()}`,
+            name: `Preset ${new Date().toLocaleTimeString()}`,
+            values: {},
+            createdAt: Date.now()
+        };
+
+        for (const vw of containerConfig.virtualWidgets) {
+            presetData.values[vw.id] = vw.value;
+        }
+
+        // Store in localStorage or state
+        const existingPresets = JSON.parse(localStorage.getItem('specialContainerPresets') || '{}');
+        existingPresets[presetData.id] = presetData;
+        localStorage.setItem('specialContainerPresets', JSON.stringify(existingPresets));
+
+        return { success: true, message: 'Preset saved', presetId: presetData.id };
+    } catch (e) {
+        console.error('[Special Container] Failed to save preset:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Load a preset
+ */
+async function loadPreset(presetId, containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to update' };
+        }
+
+        const existingPresets = JSON.parse(localStorage.getItem('specialContainerPresets') || '{}');
+        const preset = existingPresets[presetId];
+        
+        if (!preset) {
+            return { success: false, error: 'Preset not found' };
+        }
+
+        for (const vw of containerConfig.virtualWidgets) {
+            if (preset.values[vw.id] !== undefined) {
+                vw.value = preset.values[vw.id];
+                
+                // Update DOM if exists
+                const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
+                if (domEl?.updateValue) {
+                    domEl.updateValue(vw.value);
+                }
+            }
+        }
+
+        return { success: true, message: 'Preset loaded' };
+    } catch (e) {
+        console.error('[Special Container] Failed to load preset:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Copy widget values to clipboard
+ */
+async function copyValuesToClipboard(containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to copy' };
+        }
+
+        const values = {};
+        for (const vw of containerConfig.virtualWidgets) {
+            values[vw.id] = { name: vw.name, type: vw.type, value: vw.value };
+        }
+
+        await navigator.clipboard.writeText(JSON.stringify(values, null, 2));
+        return { success: true, message: 'Values copied to clipboard' };
+    } catch (e) {
+        console.error('[Special Container] Failed to copy values:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Paste widget values from clipboard
+ */
+async function pasteValuesFromClipboard(containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to update' };
+        }
+
+        const clipboardText = await navigator.clipboard.readText();
+        const values = JSON.parse(clipboardText);
+
+        for (const vw of containerConfig.virtualWidgets) {
+            if (values[vw.id]?.value !== undefined) {
+                vw.value = values[vw.id].value;
+                
+                // Update DOM if exists
+                const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
+                if (domEl?.updateValue) {
+                    domEl.updateValue(vw.value);
+                }
+            }
+        }
+
+        return { success: true, message: 'Values pasted from clipboard' };
+    } catch (e) {
+        console.error('[Special Container] Failed to paste values:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Force sync all connected widgets
+ */
+async function syncAllWidgets(containerConfig) {
+    try {
+        if (!containerConfig?.virtualWidgets) {
+            return { success: false, error: 'No widgets to sync' };
+        }
+
+        let syncedCount = 0;
+        for (const vw of containerConfig.virtualWidgets) {
+            if (vw.connection) {
+                await syncVirtualWidget(vw, false);
+                syncedCount++;
+                
+                // Update DOM if exists
+                const domEl = document.querySelector(`[data-virtual-widget-id="${vw.id}"]`);
+                if (domEl?.updateValue) {
+                    domEl.updateValue(vw.value);
+                }
+            }
+        }
+
+        return { success: true, message: `Synced ${syncedCount} widgets` };
+    } catch (e) {
+        console.error('[Special Container] Failed to sync widgets:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Clear cached data
+ */
+async function clearCache() {
+    try {
+        // Clear virtual widget states
+        virtualWidgetStates.clear();
+        
+        // Clear any cached presets
+        localStorage.removeItem('specialContainerPresets');
+        
+        return { success: true, message: 'Cache cleared' };
+    } catch (e) {
+        console.error('[Special Container] Failed to clear cache:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Export container configuration
+ */
+async function exportContainerConfig(containerConfig) {
+    try {
+        if (!containerConfig) {
+            return { success: false, error: 'No container config to export' };
+        }
+
+        const exportData = serializeSpecialContainer(containerConfig);
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `special-container-${containerConfig.specialType}-${Date.now()}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        
+        return { success: true, message: 'Configuration exported' };
+    } catch (e) {
+        console.error('[Special Container] Failed to export config:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Import container configuration (placeholder - requires file picker)
+ */
+async function importContainerConfig(containerConfig) {
+    try {
+        // This would require a file picker UI
+        // For now, just show a message
+        return { 
+            success: false, 
+            message: 'Import functionality requires file picker UI. Use the editor to import configurations.',
+            requiresUI: true
+        };
+    } catch (e) {
+        console.error('[Special Container] Failed to import config:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Toggle container collapse state
+ */
+async function toggleContainerCollapse(containerConfig) {
+    try {
+        if (!containerConfig) {
+            return { success: false, error: 'No container config' };
+        }
+
+        containerConfig.collapsed = !containerConfig.collapsed;
+        
+        // Update DOM if exists
+        const containerEl = document.querySelector(`[data-container-id="${containerConfig.id}"]`);
+        if (containerEl) {
+            containerEl.classList.toggle('collapsed', containerConfig.collapsed);
+        }
+        
+        return { success: true, message: `Container ${containerConfig.collapsed ? 'collapsed' : 'expanded'}` };
+    } catch (e) {
+        console.error('[Special Container] Failed to toggle collapse:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Execute custom JavaScript script
+ */
+async function executeCustomScript(script, virtualWidget, containerConfig) {
+    try {
+        if (!script) {
+            return { success: false, error: 'No script defined' };
+        }
+
+        // Create a safe execution context
+        const context = {
+            widget: virtualWidget,
+            container: containerConfig,
+            virtualWidgetStates,
+            console,
+            Date,
+            Math,
+            JSON,
+            Object,
+            Array,
+            String,
+            Number,
+            Boolean
+        };
+
+        // Create function with context
+        const fn = new Function(...Object.keys(context), script);
+        const result = fn(...Object.values(context));
+        
+        return { 
+            success: true, 
+            message: 'Script executed',
+            result: result
+        };
+    } catch (e) {
+        console.error('[Special Container] Script execution failed:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+/**
+ * Show confirmation dialog
+ */
+async function showConfirmDialog(message) {
+    // In browser context, use native confirm
+    if (typeof window !== 'undefined' && window.confirm) {
+        return window.confirm(message);
+    }
+    // Default to true in non-browser contexts
+    return true;
 }

@@ -1822,10 +1822,79 @@ input:checked + .a11-switch-slider:before {
     gap: 8px; 
 }
 
-.a11-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 10000; display: none; align-items: center; justify-content: center; animation: a11-fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+/* Modal Transitions & Stability - Prevent Twitching */
+.a11-modal { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.75); 
+    backdrop-filter: blur(4px); 
+    z-index: 10000; 
+    display: flex;
+    align-items: center; 
+    justify-content: center; 
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    contain: layout style paint;
+}
+
+.a11-modal.open { 
+    opacity: 1;
+    visibility: visible;
+}
+
 @keyframes a11-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.a11-modal.open { display: flex !important; }
-.a11-modal-content { background: var(--a11-menu); border: 1px solid var(--a11-border); border-radius: var(--a11-radius-md); padding: 0; width: 450px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--a11-shadow-xl); overflow: hidden; }
+
+.a11-modal-content { 
+    background: var(--a11-menu); 
+    border: 1px solid var(--a11-border); 
+    border-radius: var(--a11-radius-md); 
+    padding: 0; 
+    width: 450px; 
+    max-height: 90vh; 
+    display: flex; 
+    flex-direction: column; 
+    box-shadow: var(--a11-shadow-xl); 
+    overflow: hidden;
+    transform: scale(0.98) translateY(-10px);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.a11-modal.open .a11-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* Prevent Layout Shifts during Mode Switching */
+#app-container {
+    contain: layout style;
+}
+
+.grid-container {
+    contain: layout style paint;
+    will-change: contents;
+}
+
+/* Smooth Mode Transitions */
+.edit-mode-indicator,
+.mode-toggle-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fix for scrollbar jumping when modal opens */
+body.modal-open {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width, 0);
+}
+
+/* Prevent content reflow during updates */
+.virtual-widget-container,
+.special-container-content {
+    contain: layout style paint;
+}
 .a11-modal-title { font-weight: 600; color: var(--a11-text); font-size: 16px; border-bottom: 1px solid var(--a11-border); padding: var(--a11-space-4) var(--a11-space-5); margin: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--a11-accent), transparent 85%), transparent); }
 .a11-modal-body { overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; padding: var(--a11-space-5); }
 .a11-group-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--a11-input); border-radius: 4px; border: 1px solid var(--a11-border); cursor: pointer; }

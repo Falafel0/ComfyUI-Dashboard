@@ -16,6 +16,7 @@ import {
     validateSpecialContainer
 } from "./specialContainers.js";
 import { CONTAINER_TYPES } from "./presetManager.js";
+import { closeModalSmooth } from "./ui.js";
 
 let currentEditingConfig = null;
 let onEditorSaveCallback = null;
@@ -25,7 +26,10 @@ let onEditorSaveCallback = null;
  */
 export function openSpecialContainerEditor(config = null, onSave = null) {
     const modal = document.createElement("div");
-    modal.className = "a11-modal open";
+    modal.className = "a11-modal";
+    // Force reflow for smooth transition
+    void modal.offsetWidth;
+    modal.classList.add('open');
     
     currentEditingConfig = config || null;
     onEditorSaveCallback = onSave;
@@ -216,7 +220,9 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
     };
     
     // Cancel button
-    modal.querySelector('#sce-cancel').onclick = () => modal.remove();
+    modal.querySelector('#sce-cancel').onclick = () => {
+        closeModalSmooth(modal);
+    };
     
     // Save button
     modal.querySelector('#sce-save').onclick = () => {
@@ -230,7 +236,7 @@ export function openSpecialContainerEditor(config = null, onSave = null) {
                 if (onEditorSaveCallback) {
                     onEditorSaveCallback(null, true); // null config, isDelete=true
                 }
-                modal.remove();
+                closeModalSmooth(modal);
             }
         };
     }
@@ -1220,5 +1226,6 @@ function saveSpecialContainer(modal) {
         onEditorSaveCallback(config, false);
     }
     
-    modal.remove();
+    // Close modal smoothly
+    closeModalSmooth(modal);
 }

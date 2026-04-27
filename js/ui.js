@@ -330,9 +330,24 @@ export function injectUI() {
     document.body.appendChild(overlay);
 }
 
+// Helper function to close modals smoothly without twitching
+export function closeModalSmooth(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    // Wait for transition to complete before removing from DOM
+    setTimeout(() => {
+        if (modal && modal.parentNode) {
+            modal.remove();
+        }
+    }, 200); // Match CSS transition duration
+}
+
 function openGlobalSettings() {
     const modal = document.createElement("div");
-    modal.className = "a11-modal open";
+    modal.className = "a11-modal";
+    // Force reflow to ensure transition works
+    void modal.offsetWidth;
+    modal.classList.add('open');
     modal.innerHTML = `
         <div class="a11-modal-content" style="width:700px; max-height:85vh; overflow:hidden; display:flex; flex-direction:column;">
             <div class="a11-modal-title">⚙ Global Settings</div>
@@ -440,7 +455,7 @@ function openGlobalSettings() {
 
     modal.querySelector("#gs-reset").onclick = () => {
         if (confirm("Are you sure you want to reset ALL settings to defaults? This cannot be undone.")) {
-            resetSettings(); updateDynamicStyles(); modal.remove();
+            resetSettings(); updateDynamicStyles(); closeModalSmooth(modal);
         }
     };
     
@@ -462,7 +477,7 @@ function openGlobalSettings() {
         alert(msg);
     };
     
-    modal.querySelector("#gs-cancel").onclick = () => modal.remove();
+    modal.querySelector("#gs-cancel").onclick = () => closeModalSmooth(modal);
     modal.querySelector("#gs-save").onclick = () => {
         const newDensity = parseInt(modal.querySelector("#gs-density").value);
         const newMargin = parseInt(modal.querySelector("#gs-margin").value);
@@ -502,7 +517,7 @@ function openGlobalSettings() {
             state.grid.removeAll();
             if (currentTab.layout) currentTab.layout.forEach(item => addGridItem(item.config, { x: item.x, y: item.y, w: item.w, h: item.h }));
         }
-        modal.remove();
+        closeModalSmooth(modal);
     };
 }
 
@@ -617,7 +632,9 @@ export function setupUIListeners() {
     document.getElementById("a11-tab-add").onclick = () => {
         if (!state.isEditMode) return;
         const modal = document.createElement("div");
-        modal.className = "a11-modal open";
+        modal.className = "a11-modal";
+        void modal.offsetWidth;
+        modal.classList.add('open');
 
         let presetOptions = `<option value="">-- Empty Tab --</option>`;
         if (state.settings.tabPresets && state.settings.tabPresets.length > 0) {
@@ -647,7 +664,7 @@ export function setupUIListeners() {
         `;
         document.body.appendChild(modal);
 
-        modal.querySelector("#nt-cancel").onclick = () => modal.remove();
+        modal.querySelector("#nt-cancel").onclick = () => closeModalSmooth(modal);
         modal.querySelector("#nt-create").onclick = () => {
             const name = modal.querySelector("#new-tab-name").value || "Unnamed Tab";
             const presetIdx = modal.querySelector("#new-tab-preset").value;
@@ -677,7 +694,7 @@ export function setupUIListeners() {
             state.appData.tabs.push({ name, generateBtnText, presetCategory: "", gallerySources, layout: newLayout, activeGroups: [] });
             updateGraphExtra(true);
             switchTab(state.appData.tabs.length - 1);
-            modal.remove();
+            closeModalSmooth(modal);
         };
     };
 
@@ -699,7 +716,9 @@ export function setupUIListeners() {
         
         // Create a menu to choose between regular and special container
         const menu = document.createElement("div");
-        menu.className = "a11-modal open";
+        menu.className = "a11-modal";
+        void menu.offsetWidth;
+        menu.classList.add('open');
         menu.innerHTML = `
             <div class="a11-modal-content" style="width:450px;">
                 <div class="a11-modal-title">➕ Add New Container</div>
@@ -723,16 +742,16 @@ export function setupUIListeners() {
         `;
         document.body.appendChild(menu);
         
-        menu.querySelector("#cancel-add-container").onclick = () => menu.remove();
+        menu.querySelector("#cancel-add-container").onclick = () => closeModalSmooth(menu);
         
         menu.querySelector("#add-regular-container-btn").onclick = () => {
-            menu.remove();
+            closeModalSmooth(menu);
             addGridItem({ title: "Container", widgets: [] }, { w: 12, h: 2 });
             setTimeout(refreshContainerList, 100);
         };
         
         menu.querySelector("#add-special-container-btn").onclick = () => {
-            menu.remove();
+            closeModalSmooth(menu);
             openSpecialContainerCreator();
         };
     };
@@ -741,7 +760,9 @@ export function setupUIListeners() {
         if (!state.isEditMode) return;
         const currentTab = state.appData.tabs[state.appData.activeIdx];
         const modal = document.createElement("div");
-        modal.className = "a11-modal open";
+        modal.className = "a11-modal";
+        void modal.offsetWidth;
+        modal.classList.add('open');
 
         let nodeOptions = "";
         const sources = currentTab.gallerySources || [];
@@ -1006,7 +1027,7 @@ export function setupUIListeners() {
             reader.readAsText(file);
         };
 
-        modal.querySelector("#ts-cancel").onclick = () => modal.remove();
+        modal.querySelector("#ts-cancel").onclick = () => closeModalSmooth(modal);
         modal.querySelector("#ts-save").onclick = () => {
             currentTab.name = modal.querySelector("#ts-name").value || "Unnamed Tab";
             currentTab.generateBtnText = modal.querySelector("#ts-gen-text").value || "Generate";
@@ -1015,7 +1036,7 @@ export function setupUIListeners() {
             updateGraphExtra(true); renderTabs();
             const btnGenMain = document.getElementById("btn-generate-main");
             if (btnGenMain) btnGenMain.innerText = currentTab.generateBtnText;
-            modal.remove();
+            closeModalSmooth(modal);
         };
     };
 

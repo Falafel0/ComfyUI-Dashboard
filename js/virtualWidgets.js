@@ -25,9 +25,6 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
     wrapper.dataset.containerId = containerId;
     wrapper.dataset.widgetType = virtualWidget.type;
 
-    // Apply display settings from virtual widget configuration
-    applyDisplaySettings(wrapper, virtualWidget);
-
     // Restore saved state if exists
     if (virtualWidgetStates.has(virtualWidget.id)) {
         virtualWidget.value = virtualWidgetStates.get(virtualWidget.id);
@@ -38,21 +35,12 @@ export function createVirtualWidgetDOM(virtualWidget, containerId, options = {})
         updateVirtualWidgetValue(wrapper, newValue);
     };
 
-    // Create label based on display settings
-    const showLabel = virtualWidget.displaySettings?.showLabel !== false && !options.hideLabel;
-    if (showLabel) {
+    // Create label if not hidden
+    if (!options.hideLabel) {
         const label = document.createElement('div');
         label.className = 'gw-widget-label';
         label.textContent = virtualWidget.name || virtualWidget.type.replace(/_/g, ' ').toUpperCase();
         if (options.labelColor) label.style.color = options.labelColor;
-        
-        // Apply label position
-        const labelPosition = virtualWidget.displaySettings?.labelPosition || 'top';
-        if (labelPosition) {
-            wrapper.dataset.labelPosition = labelPosition;
-            wrapper.classList.add(`label-${labelPosition}`);
-        }
-        
         wrapper.appendChild(label);
     }
 
@@ -537,177 +525,6 @@ function formatValue(value, format) {
 }
 
 /**
- * Apply display settings to virtual widget wrapper
- * Handles visibility, view modes, layout properties, and animations
- */
-function applyDisplaySettings(wrapper, virtualWidget) {
-    const displaySettings = virtualWidget.displaySettings || {};
-    
-    // 1. Visibility Control
-    if (displaySettings.visible === false || displaySettings.viewMode === 'hidden') {
-        wrapper.style.display = 'none';
-        wrapper.dataset.hidden = 'true';
-        return; // Skip other settings if hidden
-    }
-    
-    // 2. View Mode (affects size and detail level)
-    const viewMode = displaySettings.viewMode || 'normal';
-    wrapper.dataset.viewMode = viewMode;
-    wrapper.classList.add(`view-mode-${viewMode}`);
-    
-    if (viewMode === 'compact') {
-        wrapper.classList.add('vw-compact');
-    } else if (viewMode === 'detailed') {
-        wrapper.classList.add('vw-detailed');
-    }
-    
-    // 3. Layout Order
-    if (displaySettings.order !== undefined && displaySettings.order !== null) {
-        wrapper.style.order = displaySettings.order;
-    }
-    
-    // 4. Size Constraints
-    if (displaySettings.minWidth) {
-        wrapper.style.minWidth = typeof displaySettings.minWidth === 'number' 
-            ? `${displaySettings.minWidth}px` 
-            : displaySettings.minWidth;
-    }
-    if (displaySettings.maxWidth) {
-        wrapper.style.maxWidth = typeof displaySettings.maxWidth === 'number' 
-            ? `${displaySettings.maxWidth}px` 
-            : displaySettings.maxWidth;
-    }
-    if (displaySettings.minHeight) {
-        wrapper.style.minHeight = typeof displaySettings.minHeight === 'number' 
-            ? `${displaySettings.minHeight}px` 
-            : displaySettings.minHeight;
-    }
-    if (displaySettings.maxHeight) {
-        wrapper.style.maxHeight = typeof displaySettings.maxHeight === 'number' 
-            ? `${displaySettings.maxHeight}px` 
-            : displaySettings.maxHeight;
-    }
-    
-    // 5. Flex/Grid Properties
-    if (displaySettings.grow) {
-        wrapper.style.flexGrow = '1';
-    }
-    if (displaySettings.shrink === false) {
-        wrapper.style.flexShrink = '0';
-    }
-    if (displaySettings.align) {
-        wrapper.style.alignSelf = displaySettings.align;
-    }
-    if (displaySettings.justify && displaySettings.justify !== 'auto') {
-        wrapper.style.justifySelf = displaySettings.justify;
-    }
-    
-    // 6. Grid Span
-    if (displaySettings.columnSpan && displaySettings.columnSpan > 1) {
-        wrapper.style.gridColumn = `span ${displaySettings.columnSpan}`;
-    }
-    if (displaySettings.rowSpan && displaySettings.rowSpan > 1) {
-        wrapper.style.gridRow = `span ${displaySettings.rowSpan}`;
-    }
-    
-    // 7. Icon Support
-    if (displaySettings.icon) {
-        wrapper.dataset.icon = displaySettings.icon;
-        wrapper.classList.add('has-icon');
-    }
-    
-    // 8. Tooltip
-    if (displaySettings.tooltip) {
-        wrapper.title = displaySettings.tooltip;
-    }
-    
-    // 9. Animations
-    const animations = displaySettings.animations || {};
-    if (animations.enabled !== false) {
-        const duration = animations.duration || 300;
-        wrapper.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-        
-        // Entrance animation
-        const entrance = animations.entrance || 'fade';
-        if (entrance !== 'none') {
-            wrapper.classList.add(`animate-${entrance}`);
-            wrapper.classList.add('animate-once');
-        }
-        
-        // Hover animation
-        const hover = animations.hover || 'highlight';
-        if (hover !== 'none') {
-            wrapper.dataset.hoverEffect = hover;
-            wrapper.classList.add(`hover-${hover}`);
-        }
-    }
-    
-    // 10. Conditional Display Logic
-    if (displaySettings.conditionalDisplay) {
-        setupConditionalDisplay(wrapper, virtualWidget, displaySettings.conditionalDisplay);
-    }
-}
-
-/**
- * Setup conditional display based on another widget's value
- */
-function setupConditionalDisplay(wrapper, virtualWidget, condition) {
-    const { operator, value, sourceWidgetId } = condition;
-    
-    if (!sourceWidgetId) return;
-    
-    const checkCondition = () => {
-        const sourceValue = virtualWidgetStates.get(sourceWidgetId);
-        let shouldShow = false;
-        
-        switch (operator) {
-            case 'eq':
-            case '==':
-                shouldShow = sourceValue == value;
-                break;
-            case 'neq':
-            case '!=':
-                shouldShow = sourceValue != value;
-                break;
-            case 'gt':
-            case '>':
-                shouldShow = sourceValue > value;
-                break;
-            case 'gte':
-            case '>=':
-                shouldShow = sourceValue >= value;
-                break;
-            case 'lt':
-            case '<':
-                shouldShow = sourceValue < value;
-                break;
-            case 'lte':
-            case '<=':
-                shouldShow = sourceValue <= value;
-                break;
-            case 'truthy':
-                shouldShow = !!sourceValue;
-                break;
-            case 'falsy':
-                shouldShow = !sourceValue;
-                break;
-            default:
-                shouldShow = true;
-        }
-        
-        wrapper.style.display = shouldShow ? '' : 'none';
-        wrapper.dataset.conditionMet = shouldShow;
-    };
-    
-    // Initial check
-    checkCondition();
-    
-    // Listen for changes to the source widget
-    wrapper._conditionalListener = () => checkCondition();
-    window.addEventListener(`virtual-widget-update-${sourceWidgetId}`, wrapper._conditionalListener);
-}
-
-/**
  * Apply styles to virtual widget wrapper with advanced styling support
  */
 function applyVirtualWidgetStyles(wrapper, virtualWidget, options) {
@@ -946,10 +763,8 @@ async function syncWithRealWidget(virtualWidget) {
 /**
  * Update virtual widget value from external source
  */
-/**
- * Update virtual widget value from external source
- */
 export function updateVirtualWidgetValue(wrapper, newValue) {
+    // Handle image widgets specially
     if (wrapper.classList.contains('vw-image-container') && wrapper.updateImageSource) {
         const virtualWidgetId = wrapper.dataset?.virtualWidgetId;
         if (virtualWidgetId) {
@@ -1056,6 +871,3 @@ export function applySpecialContainerLayout(body, config) {
             body.style.gap = '10px';
     }
 }
-
-// Export all public functions
-export { createVirtualWidgetDOM, updateVirtualWidgetValue, applySpecialContainerLayout, applyDisplaySettings };

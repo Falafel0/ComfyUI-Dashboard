@@ -747,42 +747,81 @@ function openWidgetConfigDialog(virtualWidget, modal) {
     }
     // VIRTUAL_BUTTON
     else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
+        const actionConfig = virtualWidget.actionConfig || {};
         configFields += `
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                <label>Action Type</label>
-                <select id="vw-config-action" style="width:100%">
-                    <option value="momentary" ${virtualWidget.config?.actionType === 'momentary' ? 'selected' : ''}>Momentary</option>
-                    <option value="toggle" ${virtualWidget.config?.actionType === 'toggle' ? 'selected' : ''}>Toggle</option>
-                    <option value="link" ${virtualWidget.config?.actionType === 'link' ? 'selected' : ''}>External Link</option>
+                <label>Button Action Type</label>
+                <select id="vw-config-buttontype" style="width:100%">
+                    <option value="launch_workflow" ${actionConfig.actionType === 'launch_workflow' ? 'selected' : ''}>🚀 Launch Workflow</option>
+                    <option value="launch_node" ${actionConfig.actionType === 'launch_node' ? 'selected' : ''}>▶️ Execute Specific Node</option>
+                    <option value="reset_widgets" ${actionConfig.actionType === 'reset_widgets' ? 'selected' : ''}>🔄 Reset All Widgets</option>
+                    <option value="save_preset" ${actionConfig.actionType === 'save_preset' ? 'selected' : ''}>💾 Save Preset</option>
+                    <option value="load_preset" ${actionConfig.actionType === 'load_preset' ? 'selected' : ''}>📂 Load Preset</option>
+                    <option value="copy_values" ${actionConfig.actionType === 'copy_values' ? 'selected' : ''}>📋 Copy Values</option>
+                    <option value="paste_values" ${actionConfig.actionType === 'paste_values' ? 'selected' : ''}>📄 Paste Values</option>
+                    <option value="sync_all" ${actionConfig.actionType === 'sync_all' ? 'selected' : ''}>🔁 Sync All Connected</option>
+                    <option value="clear_cache" ${actionConfig.actionType === 'clear_cache' ? 'selected' : ''}>🗑️ Clear Cache</option>
+                    <option value="export_config" ${actionConfig.actionType === 'export_config' ? 'selected' : ''}>📤 Export Config</option>
+                    <option value="import_config" ${actionConfig.actionType === 'import_config' ? 'selected' : ''}>📥 Import Config</option>
+                    <option value="toggle_collapse" ${actionConfig.actionType === 'toggle_collapse' ? 'selected' : ''}>📌 Toggle Collapse</option>
+                    <option value="custom_script" ${actionConfig.actionType === 'custom_script' || !actionConfig.actionType ? 'selected' : ''}>⚙️ Custom Script</option>
                 </select>
             </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Icon Class (FontAwesome)</label>
-                <input type="text" id="vw-config-icon" value="${virtualWidget.config?.icon || ''}" style="width:100%" placeholder="fa fa-power-off">
+            
+            <!-- Target Node Selection (for launch_node) -->
+            <div class="a11-setting-row" id="vw-config-targetnode-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${actionConfig.actionType === 'launch_node' ? 'flex' : 'none'}">
+                <label>Target Node ID</label>
+                <input type="text" id="vw-config-targetnode" value="${actionConfig.targetNodeId || ''}" style="width:100%" placeholder="Enter node ID (e.g., 5)">
+                <small style="color:var(--a11-desc)">The specific node to execute when button is clicked</small>
             </div>
-            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Background Style</label>
-                <select id="vw-config-bgstyle" style="width:100%">
-                    <option value="solid" ${virtualWidget.config?.bgStyle === 'solid' ? 'selected' : ''}>Solid</option>
-                    <option value="gradient" ${virtualWidget.config?.bgStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
-                    <option value="outline" ${virtualWidget.config?.bgStyle === 'outline' ? 'selected' : ''}>Outline</option>
-                </select>
+            
+            <!-- Preset ID Selection (for save/load preset) -->
+            <div class="a11-setting-row" id="vw-config-presetid-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${['save_preset', 'load_preset'].includes(actionConfig.actionType) ? 'flex' : 'none'}">
+                <label>Preset ID (optional)</label>
+                <input type="text" id="vw-config-presetid" value="${actionConfig.presetId || ''}" style="width:100%" placeholder="Leave empty for auto-generated">
+                <small style="color:var(--a11-desc)">Unique identifier for the preset</small>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                    <label>Primary Color</label>
-                    <input type="color" id="vw-config-color1" value="${virtualWidget.config?.color1 || '#ea580c'}" style="width:100%; height:40px;">
-                </div>
-                <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                    <label>Secondary Color</label>
-                    <input type="color" id="vw-config-color2" value="${virtualWidget.config?.color2 || '#c2410c'}" style="width:100%; height:40px;">
-                </div>
+            
+            <!-- Custom Script (for custom_script) -->
+            <div class="a11-setting-row" id="vw-config-script-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px; display:${actionConfig.actionType === 'custom_script' || !actionConfig.actionType ? 'flex' : 'none'}">
+                <label>Custom JavaScript</label>
+                <textarea id="vw-config-script" rows="6" style="width:100%; font-family:monospace; font-size:11px;" placeholder="console.log('Button clicked!');">${actionConfig.script || 'console.log("Button clicked!");'}</textarea>
+                <small style="color:var(--a11-desc)">Available variables: widget, container, virtualWidgetStates, console, Date, Math, JSON</small>
             </div>
+            
             <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
-                <label>Corner Radius (px)</label>
-                <input type="number" id="vw-config-radius" value="${virtualWidget.config?.radius ?? 4}" min="0" max="50" style="width:100%">
+                <label>Confirm Before Execution</label>
+                <input type="checkbox" id="vw-config-confirm" ${actionConfig.confirmBeforeExec ? 'checked' : ''} style="margin-right:8px;">
+                <span>Show confirmation dialog before executing action</span>
+            </div>
+            
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Button Label</label>
+                <input type="text" id="vw-config-label" value="${virtualWidget.config?.label || 'Button'}" style="width:100%" placeholder="Button text">
+            </div>
+            
+            <div class="a11-setting-row" style="flex-direction:column; align-items:flex-start; gap:8px; margin-top:10px;">
+                <label>Accent Color</label>
+                <input type="color" id="vw-config-accentcolor" value="${virtualWidget.config?.accentColor || '#ea580c'}" style="width:100%; height:40px;">
             </div>
         `;
+        
+        // Add event listener for action type change to show/hide relevant fields
+        setTimeout(() => {
+            const actionSelect = configModal.querySelector('#vw-config-buttontype');
+            const targetNodeRow = configModal.querySelector('#vw-config-targetnode-row');
+            const presetIdRow = configModal.querySelector('#vw-config-presetid-row');
+            const scriptRow = configModal.querySelector('#vw-config-script-row');
+            
+            if (actionSelect) {
+                actionSelect.onchange = () => {
+                    const selectedType = actionSelect.value;
+                    if (targetNodeRow) targetNodeRow.style.display = selectedType === 'launch_node' ? 'flex' : 'none';
+                    if (presetIdRow) presetIdRow.style.display = ['save_preset', 'load_preset'].includes(selectedType) ? 'flex' : 'none';
+                    if (scriptRow) scriptRow.style.display = selectedType === 'custom_script' ? 'flex' : 'none';
+                };
+            }
+        }, 0);
     }
     // VIRTUAL_DISPLAY
     else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
@@ -1074,12 +1113,17 @@ function openWidgetConfigDialog(virtualWidget, modal) {
             virtualWidget.config.onLabel = configModal.querySelector('#vw-config-onlabel').value;
             virtualWidget.config.offLabel = configModal.querySelector('#vw-config-offlabel').value;
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_BUTTON) {
-            virtualWidget.config.actionType = configModal.querySelector('#vw-config-action').value;
-            virtualWidget.config.icon = configModal.querySelector('#vw-config-icon').value;
-            virtualWidget.config.bgStyle = configModal.querySelector('#vw-config-bgstyle').value;
-            virtualWidget.config.color1 = configModal.querySelector('#vw-config-color1').value;
-            virtualWidget.config.color2 = configModal.querySelector('#vw-config-color2').value;
-            virtualWidget.config.radius = parseInt(configModal.querySelector('#vw-config-radius').value) || 4;
+            // Save new action config for buttons
+            virtualWidget.actionConfig = virtualWidget.actionConfig || {};
+            virtualWidget.actionConfig.actionType = configModal.querySelector('#vw-config-buttontype').value;
+            virtualWidget.actionConfig.targetNodeId = configModal.querySelector('#vw-config-targetnode')?.value || null;
+            virtualWidget.actionConfig.presetId = configModal.querySelector('#vw-config-presetid')?.value || null;
+            virtualWidget.actionConfig.script = configModal.querySelector('#vw-config-script')?.value || 'console.log("Button clicked!");';
+            virtualWidget.actionConfig.confirmBeforeExec = configModal.querySelector('#vw-config-confirm')?.checked || false;
+            
+            // Also save common button config
+            virtualWidget.config.label = configModal.querySelector('#vw-config-label').value;
+            virtualWidget.config.accentColor = configModal.querySelector('#vw-config-accentcolor').value;
         } else if (virtualWidget.type === SPECIAL_WIDGET_TYPES.VIRTUAL_DISPLAY) {
             virtualWidget.config.displayType = configModal.querySelector('#vw-config-disptype').value;
             virtualWidget.config.ledColor = configModal.querySelector('#vw-config-ledcolor').value;

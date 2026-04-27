@@ -310,7 +310,7 @@ function createDropdownWidget(virtualWidget, options, onValueChange) {
 }
 
 /**
- * Button widget
+ * Button widget with enhanced action support
  */
 function createButtonWidget(virtualWidget, options, onValueChange) {
     const button = document.createElement('button');
@@ -326,12 +326,63 @@ function createButtonWidget(virtualWidget, options, onValueChange) {
     }
 
     if (onValueChange) {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
+            // Execute button action if configured
+            if (virtualWidget.actionConfig) {
+                try {
+                    const { executeButtonAction } = await import('./specialContainers.js');
+                    const containerId = button.closest('.gw-widget-wrapper')?.dataset?.containerId;
+                    
+                    // Get container config from state
+                    let containerConfig = null;
+                    if (containerId && window.appData?.gridConfig?.items) {
+                        containerConfig = window.appData.gridConfig.items.find(
+                            item => item.id === containerId || item.config?.id === containerId
+                        )?.config;
+                    }
+                    
+                    const result = await executeButtonAction(virtualWidget, containerConfig);
+                    console.log('[Virtual Button] Action result:', result);
+                    
+                    // Show feedback if available
+                    if (result?.message) {
+                        showButtonFeedback(button, result.success ? '✓ ' + result.message : '✗ ' + result.error);
+                    }
+                } catch (e) {
+                    console.error('[Virtual Button] Action execution failed:', e);
+                    showButtonFeedback(button, '✗ Error: ' + e.message);
+                }
+            }
+            
+            // Also trigger the standard value change callback
             onValueChange({ type: 'click', timestamp: Date.now() });
         });
     }
 
     return button;
+}
+
+/**
+ * Show temporary feedback message on button
+ */
+function showButtonFeedback(button, message) {
+    const originalText = button.textContent;
+    const originalBg = button.style.backgroundColor;
+    
+    button.textContent = message;
+    button.disabled = true;
+    
+    if (message.startsWith('✓')) {
+        button.style.backgroundColor = '#22c55e'; // Green for success
+    } else if (message.startsWith('✗')) {
+        button.style.backgroundColor = '#ef4444'; // Red for error
+    }
+    
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = originalBg;
+        button.disabled = false;
+    }, 2000);
 }
 
 /**

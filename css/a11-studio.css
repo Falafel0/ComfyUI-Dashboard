@@ -1331,6 +1331,10 @@
     overflow: hidden; 
 }
 
+.gw-widget-wrapper.is-text-widget { 
+    overflow: visible; 
+}
+
 .gw-widget-wrapper--grows { 
     flex-grow: 1; 
     min-height: 0; 

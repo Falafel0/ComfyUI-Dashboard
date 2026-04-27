@@ -487,6 +487,11 @@ function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
     const input = wrapper.querySelector('input, textarea, select, button');
     if (!input) return;
 
+    // Add connection status class
+    if (virtualWidget.connection) {
+        wrapper.classList.add('is-connected');
+    }
+
     const emitChange = () => {
         // Update virtual widget value
         if (input.type === 'checkbox') {
@@ -501,7 +506,10 @@ function setupVirtualWidgetListeners(wrapper, virtualWidget, options) {
 
         // Sync with connected real widget if exists
         if (virtualWidget.connection) {
-            syncWithRealWidget(virtualWidget);
+            wrapper.classList.add('is-syncing');
+            syncWithRealWidget(virtualWidget).then(() => {
+                setTimeout(() => wrapper.classList.remove('is-syncing'), 300);
+            });
         }
 
         // Broadcast update
@@ -580,5 +588,78 @@ export function updateVirtualWidgetValue(wrapper, newValue) {
         input.checked = !!newValue;
     } else {
         input.value = newValue ?? '';
+    }
+}
+
+/**
+ * Apply special container type-specific layout and styling
+ * @param {HTMLElement} body - Container body element
+ * @param {Object} config - Special container configuration
+ */
+export function applySpecialContainerLayout(body, config) {
+    if (!config || config.containerType !== 'special' || !config.specialType) {
+        return;
+    }
+
+    const { specialType, settings } = config;
+
+    // Remove any existing special container layout classes
+    body.classList.remove('sc-dashboard', 'sc-control-panel', 'sc-monitor', 'sc-form', 'sc-gallery');
+
+    // Add type-specific class
+    switch (specialType) {
+        case 'dashboard':
+            body.classList.add('sc-dashboard');
+            // Dashboard: Grid layout with flexible sizing
+            body.style.display = 'grid';
+            body.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+            body.style.gap = settings?.gap || '12px';
+            body.style.alignItems = 'start';
+            break;
+
+        case 'control_panel':
+            body.classList.add('sc-control-panel');
+            // Control Panel: Compact vertical/horizontal flow
+            body.style.display = 'flex';
+            body.style.flexDirection = settings?.orientation === 'horizontal' ? 'row' : 'column';
+            body.style.flexWrap = 'wrap';
+            body.style.gap = settings?.gap || '8px';
+            body.style.alignItems = 'flex-start';
+            break;
+
+        case 'monitor':
+            body.classList.add('sc-monitor');
+            // Monitor: Dense grid for data displays
+            body.style.display = 'grid';
+            body.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+            body.style.gap = settings?.gap || '6px';
+            body.style.alignItems = 'stretch';
+            break;
+
+        case 'form':
+            body.classList.add('sc-form');
+            // Form: Vertical stacked layout with max-width constraint
+            body.style.display = 'flex';
+            body.style.flexDirection = 'column';
+            body.style.gap = settings?.gap || '16px';
+            body.style.maxWidth = settings?.maxWidth ? `${settings.maxWidth}px` : '600px';
+            body.style.margin = '0 auto';
+            break;
+
+        case 'gallery':
+            body.classList.add('sc-gallery');
+            // Gallery: Multi-column grid with fixed aspect ratios
+            body.style.display = 'grid';
+            const columns = settings?.columns || 4;
+            body.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            body.style.gap = settings?.gap || '8px';
+            body.style.alignItems = 'stretch';
+            break;
+
+        default:
+            // Fallback to default flex layout
+            body.style.display = 'flex';
+            body.style.flexDirection = 'column';
+            body.style.gap = '10px';
     }
 }

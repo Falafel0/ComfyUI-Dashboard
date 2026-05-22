@@ -26,7 +26,7 @@ A grid-based dashboard extension for ComfyUI that lets you organize workflow wid
 
 2. Clone this repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ComfyUI-dashboard-mode.git
+   git clone https://github.com/Falafel0/ComfyUI-dashboard-mode.git
    ```
 
 3. Restart ComfyUI.

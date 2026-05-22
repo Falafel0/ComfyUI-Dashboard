@@ -1,0 +1,26 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Qwen / AI assistant artifacts
+.qwen/
+
+# Backup archives
+*.zip
+*.tar.gz
+*.rar
+
+# Node modules (if any)
+node_modules/

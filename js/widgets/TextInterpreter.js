@@ -70,10 +70,7 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
             e.preventDefault();
             e.stopPropagation();
             const panel = document.getElementById("a11-left-panel");
-            if (panel) {
-                panel.style.scrollBehavior = "smooth";
-                panel.scrollTop += e.deltaY;
-            }
+            if (panel) panel.scrollTop += e.deltaY;
         }, { passive: false });
 
         wrapper.appendChild(txt);

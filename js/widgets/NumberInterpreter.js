@@ -75,27 +75,6 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
             this.sync(w, nodeId, widgetIndex, isNaN(val) ? w.value : val);
         };
 
-        // Не перехватывать скролл — скроллим контейнеры вверх по дереву
-        num.addEventListener("wheel", (e) => {
-            e.preventDefault();
-            const delta = e.deltaY;
-            const scrollingUp = delta < 0;
-            const scrollingDown = delta > 0;
-            let el = num.parentElement;
-            while (el) {
-                const style = getComputedStyle(el);
-                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    const canUp = el.scrollTop > 0;
-                    const canDown = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-                    if ((scrollingUp && canUp) || (scrollingDown && canDown) || el.scrollHeight <= el.clientHeight) {
-                        el.scrollTop += delta;
-                        if (el.scrollHeight > el.clientHeight) break;
-                    }
-                }
-                el = el.parentElement;
-            }
-        }, { passive: false });
-
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {
             const intVal = parseInt(newVal, 10);
@@ -178,27 +157,6 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
 
         slider.oninput = (e) => validateAndSync(e.target.value);
         num.onchange = (e) => validateAndSync(e.target.value);
-
-        // Не перехватывать скролл — скроллим контейнеры вверх по дереву
-        num.addEventListener("wheel", (e) => {
-            e.preventDefault();
-            const delta = e.deltaY;
-            const scrollingUp = delta < 0;
-            const scrollingDown = delta > 0;
-            let el = num.parentElement;
-            while (el) {
-                const style = getComputedStyle(el);
-                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    const canUp = el.scrollTop > 0;
-                    const canDown = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-                    if ((scrollingUp && canUp) || (scrollingDown && canDown) || el.scrollHeight <= el.clientHeight) {
-                        el.scrollTop += delta;
-                        if (el.scrollHeight > el.clientHeight) break;
-                    }
-                }
-                el = el.parentElement;
-            }
-        }, { passive: false });
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {

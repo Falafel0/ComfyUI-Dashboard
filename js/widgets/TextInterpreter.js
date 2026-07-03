@@ -64,36 +64,6 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
         txt.addEventListener("mousedown", () => resizeObserver.observe(txt));
         window.addEventListener("mouseup", () => resizeObserver.disconnect());
 
-        // Прокрутка родительского контейнера когда textarea под курсором
-        txt.addEventListener("wheel", (e) => {
-            const { scrollTop, scrollHeight, clientHeight } = txt;
-            const canScrollUp = scrollTop > 0;
-            const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
-            const scrollingUp = e.deltaY < 0;
-            const scrollingDown = e.deltaY > 0;
-
-            // Текст переполняет textarea и есть куда скроллить внутри — не мешаем
-            if (scrollHeight > clientHeight && ((scrollingUp && canScrollUp) || (scrollingDown && canScrollDown))) {
-                return;
-            }
-
-            // Иначе ищем скроллируемый контейнер вверх по дереву
-            e.preventDefault();
-            let el = txt.parentElement;
-            while (el) {
-                const style = getComputedStyle(el);
-                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    const canUp = el.scrollTop > 0;
-                    const canDown = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-                    if ((scrollingUp && canUp) || (scrollingDown && canDown) || el.scrollHeight <= el.clientHeight) {
-                        el.scrollTop += e.deltaY;
-                        if (el.scrollHeight > el.clientHeight) break; // контейнер переполнен — остановились
-                    }
-                }
-                el = el.parentElement;
-            }
-        }, { passive: false });
-
         wrapper.appendChild(txt);
         this.applyStyles(wrapper, lbl, [txt], options);
 

@@ -9,7 +9,6 @@ import { openPresetManagerModal } from "./widgets/PresetManagerUI.js";
 let _canvasStateBeforeDashboard = null;
 let _rrMove = null;
 let _rrUp = null;
-let _wheelHandler = null;
 
 function lockCanvas() {
     if (!app.canvas) return;
@@ -41,7 +40,6 @@ export function toggleWebUIStudio() {
         overlay.classList.remove("visible");
         unlockCanvas();
         if (_rrMove) { window.removeEventListener("mousemove", _rrMove); window.removeEventListener("mouseup", _rrUp); _rrMove = _rrUp = null; }
-        if (_wheelHandler) { overlay.removeEventListener("wheel", _wheelHandler, true); _wheelHandler = null; }
         selectedWidgetData = null;
 
         // P0: Очистить все "украденные" DOM элементы при закрытии
@@ -51,39 +49,6 @@ export function toggleWebUIStudio() {
     } else {
         lockCanvas();
         overlay.classList.add("visible");
-
-        // Глобальный wheel-обработчик: перехватывает скролл над textarea/input[number]
-        let scrollAccum = 0;
-        let scrollRaf = null;
-        _wheelHandler = (e) => {
-            const target = e.target;
-            if (target.tagName === "TEXTAREA") {
-                const st = target.scrollTop;
-                const sh = target.scrollHeight;
-                const ch = target.clientHeight;
-                const up = e.deltaY < 0;
-                const dn = e.deltaY > 0;
-                const canUp = st > 0;
-                const canDown = st + ch < sh - 1;
-                if (sh > ch && ((up && canUp) || (dn && canDown))) return;
-                e.preventDefault();
-            } else if (target.tagName === "INPUT" && target.type === "number") {
-                e.preventDefault();
-            } else {
-                return;
-            }
-            scrollAccum += e.deltaY;
-            if (!scrollRaf) {
-                scrollRaf = requestAnimationFrame(() => {
-                    const panel = document.getElementById("a11-left-panel");
-                    if (panel) panel.scrollTop += scrollAccum;
-                    scrollAccum = 0;
-                    scrollRaf = null;
-                });
-            }
-        };
-        overlay.addEventListener("wheel", _wheelHandler, { capture: true, passive: false });
-
         setTimeout(() => loadFromGraph(), 50);
     }
 }

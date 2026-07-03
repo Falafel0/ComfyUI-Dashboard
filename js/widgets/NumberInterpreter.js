@@ -74,6 +74,7 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
             const val = parseInt(e.target.value, 10);
             this.sync(w, nodeId, widgetIndex, isNaN(val) ? w.value : val);
         };
+        num.addEventListener("wheel", (e) => { e.preventDefault(); }, { passive: false });
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {
@@ -157,6 +158,7 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
 
         slider.oninput = (e) => validateAndSync(e.target.value);
         num.onchange = (e) => validateAndSync(e.target.value);
+        num.addEventListener("wheel", (e) => { e.preventDefault(); }, { passive: false });
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {

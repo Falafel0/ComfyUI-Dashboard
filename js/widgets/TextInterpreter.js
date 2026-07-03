@@ -64,6 +64,17 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
         txt.addEventListener("mousedown", () => resizeObserver.observe(txt));
         window.addEventListener("mouseup", () => resizeObserver.disconnect());
 
+        // Не даём textarea перехватывать скролл — браузер сам проскроллит панель
+        txt.addEventListener("wheel", (e) => {
+            const { scrollTop, scrollHeight, clientHeight } = txt;
+            const canUp = scrollTop > 0;
+            const canDown = scrollTop + clientHeight < scrollHeight - 1;
+            if (scrollHeight > clientHeight && ((e.deltaY < 0 && canUp) || (e.deltaY > 0 && canDown))) {
+                return; // textarea скроллится сама
+            }
+            e.preventDefault(); // отменяем скролл textarea → браузер скроллит панель
+        }, { passive: false });
+
         wrapper.appendChild(txt);
         this.applyStyles(wrapper, lbl, [txt], options);
 

@@ -828,9 +828,7 @@ export function initGrid() {
             var ta = target.tagName === "TEXTAREA" ? target : target.closest("textarea");
             var canScrollDown = ta.scrollTop + ta.clientHeight < ta.scrollHeight - 1;
             var canScrollUp = ta.scrollTop > 0;
-            console.log("[scroll] grid.js wheel:", { canScrollDown, canScrollUp, deltaY: e.deltaY, defaultPrevented: e.defaultPrevented });
             if ((e.deltaY > 0 && canScrollDown) || (e.deltaY < 0 && canScrollUp)) {
-                console.log("[scroll] grid.js stopPropagation");
                 e.stopPropagation();
             }
         }

@@ -165,7 +165,9 @@ const DOMManager = {
             data.currentHost = newHost;
             data.hosts.add(newHost);
             newHost.appendChild(w.element);
-            
+
+            fixScrollWheel(w.element);
+
             this._applyStyles(w.element, options);
             this._triggerResize(w.element);
             return;
@@ -186,6 +188,8 @@ const DOMManager = {
             
             // Вставить в новый хост
             newHost.appendChild(w.element);
+
+            fixScrollWheel(w.element);
 
             // Применить стили
             this._applyStyles(w.element, options);
@@ -511,6 +515,25 @@ export class CustomDOMInterpreter extends WidgetInterpreter {
 
         return wrapper;
     }
+}
+
+/**
+ * Добавляет wheel-обработчик на все textarea/input[number] внутри элемента.
+ * Предотвращает перехват скролла — браузер скроллит панель естественно.
+ */
+function fixScrollWheel(root) {
+    if (!root) return;
+    root.querySelectorAll("textarea, input[type='number']").forEach(el => {
+        if (el._scrollFixed) return;
+        el._scrollFixed = true;
+        el.addEventListener("wheel", function(e) {
+            if (el.tagName === "TEXTAREA") {
+                const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
+                if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
+            }
+            e.preventDefault();
+        }, { capture: true, passive: false });
+    });
 }
 
 export default CustomDOMInterpreter;

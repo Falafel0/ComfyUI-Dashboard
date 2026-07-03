@@ -52,13 +52,6 @@ app.registerExtension({
         setupExecutionLogic();
         updateDynamicStyles();
 
-        // DEBUG: отследить кто делает preventDefault на wheel
-        document.addEventListener("wheel", (e) => {
-            if (e.target.tagName === "TEXTAREA" || e.target.type === "number") {
-                console.log("[scroll] document capture wheel:", { target: e.target.tagName, type: e.target.type, defaultPrevented: e.defaultPrevented, deltaY: e.deltaY });
-            }
-        }, { capture: true, passive: false });
-
         const originalLoad = app.loadGraphData;
         app.loadGraphData = function(graphData) {
             const result = originalLoad.apply(this, arguments);

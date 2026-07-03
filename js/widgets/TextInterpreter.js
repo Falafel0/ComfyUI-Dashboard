@@ -65,17 +65,11 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
         window.addEventListener("mouseup", () => resizeObserver.disconnect());
 
         // Не даём textarea перехватывать скролл — браузер сам проскроллит панель
-        console.log("[scroll] TextInterpreter adding wheel handler to textarea, type:", w.type, "name:", w.name);
         txt.addEventListener("wheel", (e) => {
             const { scrollTop, scrollHeight, clientHeight } = txt;
-            const canUp = scrollTop > 0;
-            const canDown = scrollTop + clientHeight < scrollHeight - 1;
-            console.log("[scroll] textarea wheel:", { scrollTop, scrollHeight, clientHeight, canUp, canDown, deltaY: e.deltaY, overflow: scrollHeight > clientHeight, defaultPrevented: e.defaultPrevented });
-            if (scrollHeight > clientHeight && ((e.deltaY < 0 && canUp) || (e.deltaY > 0 && canDown))) {
-                console.log("[scroll] textarea handles itself");
+            if (scrollHeight > clientHeight && ((e.deltaY < 0 && scrollTop > 0) || (e.deltaY > 0 && scrollTop + clientHeight < scrollHeight - 1))) {
                 return;
             }
-            console.log("[scroll] preventDefault on textarea, letting bubble to panel");
             e.preventDefault();
         }, { passive: false });
 

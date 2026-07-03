@@ -74,18 +74,7 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
             const val = parseInt(e.target.value, 10);
             this.sync(w, nodeId, widgetIndex, isNaN(val) ? w.value : val);
         };
-        num.style.overflowY = "hidden";
-        num.addEventListener("wheel", (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const panel = document.getElementById("a11-left-panel");
-            if (!panel) return;
-            panel.dispatchEvent(new WheelEvent("wheel", {
-                deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ,
-                deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY,
-                bubbles: true, cancelable: true
-            }));
-        }, { passive: false });
+        num.style.setProperty("overflow", "hidden", "important");
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {
@@ -169,18 +158,7 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
 
         slider.oninput = (e) => validateAndSync(e.target.value);
         num.onchange = (e) => validateAndSync(e.target.value);
-        num.style.overflowY = "hidden";
-        num.addEventListener("wheel", (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const panel = document.getElementById("a11-left-panel");
-            if (!panel) return;
-            panel.dispatchEvent(new WheelEvent("wheel", {
-                deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ,
-                deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY,
-                bubbles: true, cancelable: true
-            }));
-        }, { passive: false });
+        num.style.setProperty("overflow", "hidden", "important");
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {

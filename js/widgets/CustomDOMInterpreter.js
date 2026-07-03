@@ -533,21 +533,20 @@ function fixScrollWheel(root) {
         if (el._scrollFixed) return;
         el._scrollFixed = true;
 
-        el.addEventListener("wheel", function(e) {
-            if (el.tagName === "TEXTAREA") {
-                const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
-                if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
+        const updateOverflow = () => {
+            if (el.tagName === "INPUT") {
+                el.style.setProperty("overflow", "hidden", "important");
+                return;
             }
-            e.stopPropagation();
-            e.preventDefault();
-            const panel = document.getElementById("a11-left-panel");
-            if (!panel) return;
-            panel.dispatchEvent(new WheelEvent("wheel", {
-                deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ,
-                deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY,
-                bubbles: true, cancelable: true
-            }));
-        }, { passive: false });
+            if (el.scrollHeight <= el.clientHeight) {
+                el.style.setProperty("overflow", "hidden", "important");
+            } else {
+                el.style.setProperty("overflow", "auto", "important");
+            }
+        };
+        updateOverflow();
+        console.log("[scroll] overflow forced on", el.tagName, ":", el.style.overflow);
+        el.addEventListener("input", updateOverflow);
     });
 }
 

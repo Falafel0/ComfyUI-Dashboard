@@ -64,20 +64,17 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
         txt.addEventListener("mousedown", () => resizeObserver.observe(txt));
         window.addEventListener("mouseup", () => resizeObserver.disconnect());
 
-        // Редиректим wheel с textarea на панель
-        txt.addEventListener("wheel", (e) => {
-            const st = txt.scrollTop, sh = txt.scrollHeight, ch = txt.clientHeight;
-            if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
-            e.stopPropagation();
-            e.preventDefault();
-            const panel = document.getElementById("a11-left-panel");
-            if (!panel) return;
-            panel.dispatchEvent(new WheelEvent("wheel", {
-                deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ,
-                deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY,
-                bubbles: true, cancelable: true
-            }));
-        }, { passive: false });
+        // Блокируем скролл textarea через CSS — браузер скроллит панель
+        const updateOverflow = () => {
+            if (txt.scrollHeight <= txt.clientHeight) {
+                txt.style.setProperty("overflow", "hidden", "important");
+            } else {
+                txt.style.setProperty("overflow", "auto", "important");
+            }
+        };
+        updateOverflow();
+        console.log("[scroll] overflow forced on TEXTAREA:", txt.style.overflow);
+        txt.addEventListener("input", updateOverflow);
 
         wrapper.appendChild(txt);
         this.applyStyles(wrapper, lbl, [txt], options);

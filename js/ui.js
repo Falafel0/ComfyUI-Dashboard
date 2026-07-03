@@ -53,6 +53,8 @@ export function toggleWebUIStudio() {
         overlay.classList.add("visible");
 
         // Глобальный wheel-обработчик: перехватывает скролл над textarea/input[number]
+        let scrollAccum = 0;
+        let scrollRaf = null;
         _wheelHandler = (e) => {
             const target = e.target;
             if (target.tagName === "TEXTAREA") {
@@ -63,14 +65,21 @@ export function toggleWebUIStudio() {
                 const dn = e.deltaY > 0;
                 const canUp = st > 0;
                 const canDown = st + ch < sh - 1;
-                if (sh > ch && ((up && canUp) || (dn && canDown))) return; // textarea скроллится сама
+                if (sh > ch && ((up && canUp) || (dn && canDown))) return;
                 e.preventDefault();
-                const panel = document.getElementById("a11-left-panel");
-                if (panel) panel.scrollTop += e.deltaY;
             } else if (target.tagName === "INPUT" && target.type === "number") {
                 e.preventDefault();
-                const panel = document.getElementById("a11-left-panel");
-                if (panel) panel.scrollTop += e.deltaY;
+            } else {
+                return;
+            }
+            scrollAccum += e.deltaY;
+            if (!scrollRaf) {
+                scrollRaf = requestAnimationFrame(() => {
+                    const panel = document.getElementById("a11-left-panel");
+                    if (panel) panel.scrollTop += scrollAccum;
+                    scrollAccum = 0;
+                    scrollRaf = null;
+                });
             }
         };
         overlay.addEventListener("wheel", _wheelHandler, { capture: true, passive: false });

@@ -74,7 +74,15 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
             const val = parseInt(e.target.value, 10);
             this.sync(w, nodeId, widgetIndex, isNaN(val) ? w.value : val);
         };
-        num.style.setProperty("overflow", "hidden", "important");
+        num.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const panel = document.getElementById("a11-left-panel");
+            if (panel) {
+                panel.style.scrollBehavior = "smooth";
+                panel.scrollTop += e.deltaY;
+            }
+        }, { passive: false });
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {
@@ -158,7 +166,15 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
 
         slider.oninput = (e) => validateAndSync(e.target.value);
         num.onchange = (e) => validateAndSync(e.target.value);
-        num.style.setProperty("overflow", "hidden", "important");
+        num.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const panel = document.getElementById("a11-left-panel");
+            if (panel) {
+                panel.style.scrollBehavior = "smooth";
+                panel.scrollTop += e.deltaY;
+            }
+        }, { passive: false });
 
         // Live sync через базовый класс
         this.setupLiveSync(w, nodeId, widgetIndex, num, (newVal) => {

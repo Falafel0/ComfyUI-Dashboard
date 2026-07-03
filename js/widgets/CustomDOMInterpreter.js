@@ -523,25 +523,21 @@ export class CustomDOMInterpreter extends WidgetInterpreter {
  */
 function fixScrollWheel(root) {
     if (!root) return;
-    // Собрать: сам root + все потомки — кто из них textarea/input[number]
     const targets = [];
     if (root.tagName === "TEXTAREA" || (root.tagName === "INPUT" && root.type === "number")) {
         targets.push(root);
     }
     root.querySelectorAll("textarea, input[type='number']").forEach(el => targets.push(el));
-    console.log("[scroll] fixScrollWheel scanning", root.tagName, "found:", targets.length);
     targets.forEach(el => {
         if (el._scrollFixed) return;
         el._scrollFixed = true;
-        console.log("[scroll] fixScrollWheel adding to", el.tagName, el.type || '');
         el.addEventListener("wheel", function(e) {
             if (el.tagName === "TEXTAREA") {
                 const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
                 if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
             }
-            console.log("[scroll] fixScrollWheel preventDefault on", el.tagName);
             e.preventDefault();
-        }, { capture: true, passive: false });
+        }, { passive: false });
     });
 }
 

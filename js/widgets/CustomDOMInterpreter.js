@@ -518,10 +518,9 @@ export class CustomDOMInterpreter extends WidgetInterpreter {
 }
 
 /**
- * Блокирует скролл textarea/input[number] через CSS overflow:hidden.
- * Когда textarea не переполнена — браузер не скроллит её, wheel уходит к панели.
- * Когда переполнена — скроллится сама (overflow: auto).
- * Обновляется динамически при вводе текста.
+ * Редиректит wheel-события с textarea/input на панель.
+ * Останавливает событие на виджете (stopPropagation + preventDefault)
+ * и создаёт новое на .a11-left-panel для естественного скролла.
  */
 function fixScrollWheel(root) {
     if (!root) return;
@@ -534,16 +533,21 @@ function fixScrollWheel(root) {
         if (el._scrollFixed) return;
         el._scrollFixed = true;
 
-        const updateOverflow = () => {
-            if (el.tagName === "INPUT") {
-                el.style.overflowY = "hidden";
-                return;
+        el.addEventListener("wheel", function(e) {
+            if (el.tagName === "TEXTAREA") {
+                const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
+                if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
             }
-            // textarea: скрываем скролл если не переполнена
-            el.style.overflowY = el.scrollHeight <= el.clientHeight ? "hidden" : "auto";
-        };
-        updateOverflow();
-        el.addEventListener("input", updateOverflow);
+            e.stopPropagation();
+            e.preventDefault();
+            const panel = document.getElementById("a11-left-panel");
+            if (!panel) return;
+            panel.dispatchEvent(new WheelEvent("wheel", {
+                deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ,
+                deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY,
+                bubbles: true, cancelable: true
+            }));
+        }, { passive: false });
     });
 }
 

@@ -518,8 +518,10 @@ export class CustomDOMInterpreter extends WidgetInterpreter {
 }
 
 /**
- * Добавляет wheel-обработчик на все textarea/input[number] внутри элемента.
- * Предотвращает перехват скролла — браузер скроллит панель естественно.
+ * Блокирует скролл textarea/input[number] через CSS overflow:hidden.
+ * Когда textarea не переполнена — браузер не скроллит её, wheel уходит к панели.
+ * Когда переполнена — скроллится сама (overflow: auto).
+ * Обновляется динамически при вводе текста.
  */
 function fixScrollWheel(root) {
     if (!root) return;
@@ -531,13 +533,17 @@ function fixScrollWheel(root) {
     targets.forEach(el => {
         if (el._scrollFixed) return;
         el._scrollFixed = true;
-        el.addEventListener("wheel", function(e) {
-            if (el.tagName === "TEXTAREA") {
-                const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
-                if (sh > ch && ((e.deltaY < 0 && st > 0) || (e.deltaY > 0 && st + ch < sh - 1))) return;
+
+        const updateOverflow = () => {
+            if (el.tagName === "INPUT") {
+                el.style.overflowY = "hidden";
+                return;
             }
-            e.preventDefault();
-        }, { passive: false });
+            // textarea: скрываем скролл если не переполнена
+            el.style.overflowY = el.scrollHeight <= el.clientHeight ? "hidden" : "auto";
+        };
+        updateOverflow();
+        el.addEventListener("input", updateOverflow);
     });
 }
 

@@ -64,6 +64,27 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
         txt.addEventListener("mousedown", () => resizeObserver.observe(txt));
         window.addEventListener("mouseup", () => resizeObserver.disconnect());
 
+        // Прокрутка родительского контейнера когда textarea под курсором
+        txt.addEventListener("wheel", (e) => {
+            const { scrollTop, scrollHeight, clientHeight } = txt;
+            const canScrollUp = scrollTop > 0;
+            const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
+            const scrollingUp = e.deltaY < 0;
+            const scrollingDown = e.deltaY > 0;
+
+            // Текст переполняет textarea и есть куда скроллить внутри — не мешаем
+            if (scrollHeight > clientHeight && ((scrollingUp && canScrollUp) || (scrollingDown && canScrollDown))) {
+                return;
+            }
+
+            // Иначе скроллим родительский контейнер
+            e.preventDefault();
+            const body = txt.closest(".gw-body");
+            if (body) {
+                body.scrollTop += e.deltaY;
+            }
+        }, { passive: false });
+
         wrapper.appendChild(txt);
         this.applyStyles(wrapper, lbl, [txt], options);
 

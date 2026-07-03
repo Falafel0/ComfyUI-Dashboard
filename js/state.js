@@ -107,6 +107,7 @@ export const defaultSettings = {
     panelWidth: null,
     headerHeight: null,
     previewHeight: null,
+    rpContainerHeight: null,
 
     // Right Panel settings
     rpTopHeight: 350,

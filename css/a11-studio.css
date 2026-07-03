@@ -220,14 +220,19 @@
 }
 
 .a11-resize-handle {
-    width: 5px;
-    background: var(--a11-border-light); 
-    cursor: col-resize; 
-    flex-shrink: 0; 
-    transition: all var(--a11-transition-fast); 
-    z-index: 50; 
+    width: 0;
+    background: var(--a11-border-light);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: all var(--a11-transition-fast);
+    z-index: 50;
+    opacity: 0;
 }
-.a11-resize-handle:hover, .a11-resize-handle.active { 
+.edit-mode .a11-resize-handle {
+    width: 5px;
+    opacity: 1;
+}
+.a11-resize-handle:hover, .a11-resize-handle.active {
     background: var(--a11-accent);
     box-shadow: 0 0 8px var(--a11-accent);
 }
@@ -253,16 +258,22 @@
 
 .a11-right-split-resizer {
     display: none;
+    background: var(--a11-accent);
+    cursor: row-resize;
+    flex-shrink: 0;
+    transition: height 0.15s, opacity 0.15s;
+    opacity: 0;
 }
 .edit-mode .a11-right-split-resizer {
-    height: 3px;
+    display: block;
+    height: 4px;
     opacity: 1;
     margin: var(--a11-space-2) 0;
     border-radius: var(--a11-radius-full);
     box-shadow: var(--a11-shadow-glow);
 }
 .a11-right-split-resizer:hover, .a11-right-split-resizer.active {
-    height: 5px;
+    height: 6px !important;
 }
 
 #a11-global-panel { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 5px; height: 100%; }
@@ -4069,7 +4080,7 @@ input:checked + .a11-switch-slider:before {
 .a11-context-menu {
     position: fixed;
     min-width: 180px;
-    background: var(--a11-panel-bg, #1e1e1e);
+    background: var(--a11-menu);
     border: 1px solid var(--a11-border);
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -4086,6 +4097,12 @@ input:checked + .a11-switch-slider:before {
     transition: background 0.1s;
 }
 .a11-context-item:hover { background: var(--a11-accent); color: #fff; }
+.a11-context-item.disabled {
+    color: var(--a11-text-muted);
+    cursor: default;
+    opacity: 0.45;
+}
+.a11-context-item.disabled:hover { background: transparent; color: var(--a11-text-muted); }
 .a11-context-menu hr {
     margin: 4px 8px;
     border: none;

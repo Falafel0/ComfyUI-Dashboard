@@ -24,7 +24,7 @@ function loadResource(url, type) {
 }
 
 app.registerExtension({
-    name: "Comfy.A1111ModeModular",
+    name: "Comfy.Dashboard",
     get actionBarButtons() {
         return [
             {

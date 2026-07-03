@@ -7,6 +7,8 @@ import { DOMManager } from "./widgets/CustomDOMInterpreter.js";
 import { openPresetManagerModal } from "./widgets/PresetManagerUI.js";
 
 let _canvasStateBeforeDashboard = null;
+let _rrMove = null;
+let _rrUp = null;
 
 function lockCanvas() {
     if (!app.canvas) return;
@@ -37,7 +39,7 @@ export function toggleWebUIStudio() {
     if (overlay.classList.contains("visible")) {
         overlay.classList.remove("visible");
         unlockCanvas();
-        if (typeof _rrMove !== "undefined") { window.removeEventListener("mousemove", _rrMove); window.removeEventListener("mouseup", _rrUp); _rrMove = _rrUp = undefined; }
+        if (_rrMove) { window.removeEventListener("mousemove", _rrMove); window.removeEventListener("mouseup", _rrUp); _rrMove = _rrUp = null; }
         selectedWidgetData = null;
 
         // P0: Очистить все "украденные" DOM элементы при закрытии
@@ -113,11 +115,14 @@ export function setupResizers() {
     const header = document.getElementById("a11-header");
     const headerHandle = document.getElementById("a11-header-resizer");
     const previewWrap = document.getElementById("a11-preview-wrapper");
-    const previewHandle = document.getElementById("a11-right-split-resizer");
+    const previewHandle = document.getElementById("a11-preview-resizer");
+    const rpContainer = document.getElementById("a11-right-panel-container");
+    const rpSplitHandle = document.getElementById("a11-right-split-resizer");
 
     if (state.settings.panelWidth) rightPanel.style.width = state.settings.panelWidth + "px";
     if (state.settings.headerHeight) header.style.height = state.settings.headerHeight + "px";
     if (state.settings.previewHeight) previewWrap.style.height = state.settings.previewHeight + "px";
+    if (state.settings.rpContainerHeight) rpContainer.style.height = state.settings.rpContainerHeight + "px";
 
     const makeYResizer = (handle, target, settingKey, min, max, calcHeightFn) => {
         let isResizing = false;
@@ -150,12 +155,12 @@ export function setupResizers() {
         if (!state.isEditMode) return;
         isRightResizing = true; rightHandle.classList.add("active"); document.body.style.cursor = "col-resize"; e.preventDefault();
     });
-    var _rrMove = function(e) {
+    _rrMove = function(e) {
         if (!isRightResizing) return;
-        var newWidth = window.innerWidth - e.clientX;
+        let newWidth = window.innerWidth - e.clientX;
         if (newWidth > 250 && newWidth < (window.innerWidth - 100)) rightPanel.style.width = newWidth + "px";
     };
-    var _rrUp = function() {
+    _rrUp = function() {
         if (isRightResizing) {
             isRightResizing = false; rightHandle.classList.remove("active"); document.body.style.cursor = "";
             state.settings.panelWidth = parseInt(rightPanel.style.width);
@@ -168,6 +173,9 @@ export function setupResizers() {
 
     makeYResizer(headerHandle, header, "headerHeight", 48, 400, (e) => e.clientY);
     makeYResizer(previewHandle, previewWrap, "previewHeight", 100, 800, (e, target) => {
+        const rect = target.getBoundingClientRect(); return e.clientY - rect.top;
+    });
+    makeYResizer(rpSplitHandle, rpContainer, "rpContainerHeight", 80, 600, (e, target) => {
         const rect = target.getBoundingClientRect(); return e.clientY - rect.top;
     });
 }
@@ -323,17 +331,6 @@ export function injectUI() {
                 <div class="a11-modal-footer">
                     <button class="a11-btn" id="sm-cancel">Cancel</button>
                     <button class="a11-btn active" id="sm-confirm-save">Save Image</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="a11-modal" id="a11-group-modal">
-            <div class="a11-modal-content">
-                <div class="a11-modal-title">Manage Active Groups</div>
-                <div class="a11-modal-body" id="a11-group-list"></div>
-                <div class="a11-modal-footer">
-                    <button class="a11-btn" id="a11-group-cancel">Cancel</button>
-                    <button class="a11-btn active" id="a11-group-save">Save</button>
                 </div>
             </div>
         </div>
@@ -500,6 +497,12 @@ function openGlobalSettings() {
                             <div class="a11-setting-row"><label>Show Tooltips</label><input type="checkbox" id="ui-tooltips" ${chk(pref('showTooltips',true))}></div>
                             <div class="a11-setting-row"><label>Compact Mode</label><input type="checkbox" id="ui-compact" ${chk(pref('compactMode',false))}></div>
                             <div class="a11-setting-row"><label>Show Edit Toggle Button (✐)</label><input type="checkbox" id="gs-show-edit-toggle" ${chk(s.showEditToggle!==false)}></div>
+                        </div>
+                        <div class="a11-settings-block">
+                            <div class="a11-settings-title">Right Panel Visibility</div>
+                            <div class="a11-setting-row"><label>Show Preview</label><input type="checkbox" id="gs-rp-preview" ${chk(s.rpShowPreview !== false)}></div>
+                            <div class="a11-setting-row"><label>Show Gallery</label><input type="checkbox" id="gs-rp-gallery" ${chk(s.rpShowGallery !== false)}></div>
+                            <div class="a11-setting-row"><label>Show Send Bar</label><input type="checkbox" id="gs-rp-sendbar" ${chk(s.rpShowSendBar !== false)}></div>
                         </div>
                     </div>
 
@@ -686,6 +689,11 @@ function openGlobalSettings() {
         s.presetSortOrder = g("#gs-preset-sort").value;
         s.showEditToggle = g("#gs-show-edit-toggle").checked;
         document.getElementById("a11-edit-toggle").style.display = s.showEditToggle !== false ? "" : "none";
+
+        // Right Panel visibility
+        s.rpShowPreview = g("#gs-rp-preview").checked;
+        s.rpShowGallery = g("#gs-rp-gallery").checked;
+        s.rpShowSendBar = g("#gs-rp-sendbar").checked;
 
         // Shortcuts
         s.shortcutToggle = g("#gs-shortcut-toggle").value;

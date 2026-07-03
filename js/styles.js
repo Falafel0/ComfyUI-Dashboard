@@ -127,6 +127,9 @@ export function updateDynamicStyles() {
     if (s.comfyThemeSync) {
         syncComfyTheme();
     }
+
+    // ─── Right Panel Visibility ───
+    applyRightPanelVisibility(s);
 }
 
 function getComfyVar(name, fallback) {
@@ -199,4 +202,24 @@ export function applyHoverEffect(element, effectType = null) {
             return;
     }
     element.style.boxShadow = '';
+}
+
+function applyRightPanelVisibility(s) {
+    const previewWrap = document.getElementById("a11-preview-wrapper");
+    const previewResizer = document.getElementById("a11-preview-resizer");
+    const galleryHeader = document.getElementById("a11-gallery-header");
+    const gallery = document.getElementById("a11-gallery");
+    const sendBar = document.querySelector(".a11-send-bar");
+
+    if (s.rpShowPreview === false) {
+        if (previewWrap) previewWrap.style.display = "none";
+        if (previewResizer) previewResizer.style.display = "none";
+    }
+    if (s.rpShowGallery === false) {
+        if (galleryHeader) galleryHeader.style.display = "none";
+        if (gallery) gallery.style.display = "none";
+    }
+    if (s.rpShowSendBar === false) {
+        if (sendBar) sendBar.style.display = "none";
+    }
 }

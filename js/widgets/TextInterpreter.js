@@ -69,9 +69,12 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
             const { scrollTop, scrollHeight, clientHeight } = txt;
             const canUp = scrollTop > 0;
             const canDown = scrollTop + clientHeight < scrollHeight - 1;
+            console.log("[scroll] textarea wheel:", { scrollTop, scrollHeight, clientHeight, canUp, canDown, deltaY: e.deltaY, overflow: scrollHeight > clientHeight });
             if (scrollHeight > clientHeight && ((e.deltaY < 0 && canUp) || (e.deltaY > 0 && canDown))) {
+                console.log("[scroll] textarea handles itself");
                 return; // textarea скроллится сама
             }
+            console.log("[scroll] preventDefault on textarea, letting bubble to panel");
             e.preventDefault(); // отменяем скролл textarea → браузер скроллит панель
         }, { passive: false });
 

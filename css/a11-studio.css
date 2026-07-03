@@ -91,6 +91,13 @@
     --a11-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --a11-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
     --a11-transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* ─── Button Opacity (Dynamic via JS) ─── */
+    --a11-btn-opacity: 1;
+
+    /* ─── Visual Filters (Dynamic via JS) ─── */
+    --a11-visual-filter: none;
+    --a11-bg-blur: 0px;
 }
 
 /* ─── Performance: Will-change for frequent animations ─── */
@@ -377,11 +384,12 @@
     cursor: pointer; 
     font-size: var(--a11-text-base); 
     transition: all var(--a11-transition-fast); 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: inherit;
     box-shadow: var(--a11-shadow-sm);
+    opacity: var(--a11-btn-opacity);
     position: relative;
     overflow: hidden;
 }

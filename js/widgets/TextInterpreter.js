@@ -77,11 +77,16 @@ export class TextInterpreter extends SyncableWidgetInterpreter {
                 return;
             }
 
-            // Иначе скроллим родительский контейнер
+            // Иначе ищем ближайший скроллируемый контейнер и скроллим его
             e.preventDefault();
-            const body = txt.closest(".gw-body");
-            if (body) {
-                body.scrollTop += e.deltaY;
+            let el = txt.parentElement;
+            while (el) {
+                const style = getComputedStyle(el);
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    el.scrollTop += e.deltaY;
+                    break;
+                }
+                el = el.parentElement;
             }
         }, { passive: false });
 

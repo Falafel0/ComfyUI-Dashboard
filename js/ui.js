@@ -427,6 +427,13 @@ function openGlobalSettings() {
                             <div class="a11-settings-title">Panel Dimensions</div>
                             <div class="a11-setting-row"><label>Right Panel Width (px)</label><input type="number" id="ui-rightpanel" value="${pref('rightPanelWidth',320)}" min="250" max="600"></div>
                             <div class="a11-setting-row"><label>Sidebar Width (px)</label><input type="number" id="ui-sidebar" value="${pref('sidebarWidth',280)}" min="200" max="500"></div>
+                            <div class="a11-setting-row"><label>Preview Section Height (px)</label><input type="number" id="gs-rp-top-height" value="${s.rpTopHeight||350}" min="100" max="800"></div>
+                            <div class="a11-setting-row"><label>Preview / Gallery Order</label>
+                                <select id="gs-rp-layout-order">
+                                    <option value="preview_first" ${(s.rpLayoutOrder||'preview_first')==='preview_first'?'selected':''}>Preview First</option>
+                                    <option value="gallery_first" ${s.rpLayoutOrder==='gallery_first'?'selected':''}>Gallery First</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -694,6 +701,8 @@ function openGlobalSettings() {
         s.rpShowPreview = g("#gs-rp-preview").checked;
         s.rpShowGallery = g("#gs-rp-gallery").checked;
         s.rpShowSendBar = g("#gs-rp-sendbar").checked;
+        s.rpTopHeight = parseInt(g("#gs-rp-top-height").value) || 350;
+        s.rpLayoutOrder = g("#gs-rp-layout-order").value;
 
         // Shortcuts
         s.shortcutToggle = g("#gs-shortcut-toggle").value;

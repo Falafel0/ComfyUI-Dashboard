@@ -75,11 +75,18 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
             this.sync(w, nodeId, widgetIndex, isNaN(val) ? w.value : val);
         };
 
-        // Не перехватывать скролл — прокручиваем родительский контейнер
+        // Не перехватывать скролл — ищем ближайший скроллируемый контейнер
         num.addEventListener("wheel", (e) => {
             e.preventDefault();
-            const body = num.closest(".gw-body");
-            if (body) body.scrollTop += e.deltaY;
+            let el = num.parentElement;
+            while (el) {
+                const style = getComputedStyle(el);
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    el.scrollTop += e.deltaY;
+                    break;
+                }
+                el = el.parentElement;
+            }
         }, { passive: false });
 
         // Live sync через базовый класс
@@ -165,11 +172,18 @@ export class NumberInterpreter extends SyncableWidgetInterpreter {
         slider.oninput = (e) => validateAndSync(e.target.value);
         num.onchange = (e) => validateAndSync(e.target.value);
 
-        // Не перехватывать скролл — прокручиваем родительский контейнер
+        // Не перехватывать скролл — ищем ближайший скроллируемый контейнер
         num.addEventListener("wheel", (e) => {
             e.preventDefault();
-            const body = num.closest(".gw-body");
-            if (body) body.scrollTop += e.deltaY;
+            let el = num.parentElement;
+            while (el) {
+                const style = getComputedStyle(el);
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    el.scrollTop += e.deltaY;
+                    break;
+                }
+                el = el.parentElement;
+            }
         }, { passive: false });
 
         // Live sync через базовый класс

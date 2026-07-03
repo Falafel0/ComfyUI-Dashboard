@@ -75,8 +75,8 @@ export function updateDynamicStyles() {
         root.style.setProperty('--a11-glass-bg', 'transparent');
     }
 
-    // ─── Animation Settings (connected to enableAnimations) ───
-    if (s.enableAnimations === false) {
+    // ─── Animation Settings ───
+    if (s.enableAnimations === false || s.enableTransitions === false) {
         root.style.setProperty('--a11-transition-fast', '0s');
         root.style.setProperty('--a11-transition', '0s');
         root.style.setProperty('--a11-transition-slow', '0s');
@@ -90,9 +90,28 @@ export function updateDynamicStyles() {
         root.style.setProperty('--a11-transition-bounce', `calc(2 * ${speed}) cubic-bezier(0.34, 1.56, 0.64, 1)`);
     }
 
+    // ─── Button Opacity ───
+    root.style.setProperty('--a11-btn-opacity', s.buttonOpacity || '1');
+
     // ─── Generate Button Color ───
     if (s.generateBtnColor) {
         root.style.setProperty('--a11-btn-generate-bg', s.generateBtnColor);
+    }
+
+    // ─── Advanced Visual Filters ───
+    const filters = [];
+    const sat = parseInt(s.saturationModifier) || 0;
+    const bri = parseInt(s.brightnessModifier) || 0;
+    const con = parseInt(s.contrastModifier) || 0;
+    if (sat !== 0) filters.push(`saturate(${100 + sat}%)`);
+    if (bri !== 0) filters.push(`brightness(${100 + bri}%)`);
+    if (con !== 0) filters.push(`contrast(${100 + con}%)`);
+    root.style.setProperty('--a11-visual-filter', filters.length > 0 ? filters.join(' ') : 'none');
+
+    if (s.blurBackground && parseFloat(s.blurAmount) > 0) {
+        root.style.setProperty('--a11-bg-blur', `${s.blurAmount}px`);
+    } else {
+        root.style.setProperty('--a11-bg-blur', '0px');
     }
 
     // ─── UI Preferences: Compact Mode ───
@@ -210,6 +229,8 @@ function applyRightPanelVisibility(s) {
     const galleryHeader = document.getElementById("a11-gallery-header");
     const gallery = document.getElementById("a11-gallery");
     const sendBar = document.querySelector(".a11-send-bar");
+    const paramsInfo = document.getElementById("a11-params-info");
+    const rightPanel = document.getElementById("a11-right-panel");
 
     if (s.rpShowPreview === false) {
         if (previewWrap) previewWrap.style.display = "none";
@@ -221,5 +242,27 @@ function applyRightPanelVisibility(s) {
     }
     if (s.rpShowSendBar === false) {
         if (sendBar) sendBar.style.display = "none";
+    }
+
+    // Preview section height (верхняя часть правой панели)
+    if (previewWrap && s.rpTopHeight) {
+        previewWrap.style.height = s.rpTopHeight + "px";
+    }
+
+    // Порядок Preview / Gallery
+    if (rightPanel && s.rpLayoutOrder === "gallery_first") {
+        if (galleryHeader && galleryHeader.nextElementSibling !== gallery) {
+            // Галерея должна идти перед превью
+            if (previewWrap && gallery) {
+                rightPanel.insertBefore(galleryHeader, previewWrap);
+                rightPanel.insertBefore(gallery, previewWrap);
+            }
+        }
+    } else if (rightPanel && s.rpLayoutOrder !== "gallery_first") {
+        if (previewWrap && gallery && previewWrap.nextElementSibling === gallery) {
+            // Возвращаем превью перед галереей
+            rightPanel.insertBefore(gallery, previewResizer ? previewResizer.nextElementSibling : paramsInfo);
+            rightPanel.insertBefore(galleryHeader, gallery);
+        }
     }
 }

@@ -20,7 +20,7 @@
     "borderLightColor": "",
     "borderRadius": "6",
     "shadowIntensity": "1",
-    "enableShadows": true,
+    "enableShadows": false,
     "enableGlassmorphism": false,
     "glassBlurAmount": "12",
     "fontFamily": "",
@@ -31,8 +31,8 @@
     "containerPadding": "8",
     "widgetGap": "8",
     "animationSpeed": "200",
-    "enableAnimations": true,
-    "enableTransitions": true,
+    "enableAnimations": false,
+    "enableTransitions": false,
     "transitionEasing": "cubic-bezier(0.4, 0, 0.2, 1)",
     "accentHover": "",
     "accentActive": "",
@@ -65,7 +65,7 @@
     "uiPreferences": {
         "showTooltips": true,
         "compactMode": false,
-        "animationsEnabled": true,
+        "animationsEnabled": false,
         "sidebarWidth": 280,
         "rightPanelWidth": 320
     },

@@ -32,7 +32,6 @@ export const defaultSettings = {
     
     // Border & Outline Settings
     borderColor: "",
-    borderLightColor: "",
     borderRadius: "6",
     
     // Shadow & Depth Settings
@@ -59,8 +58,6 @@ export const defaultSettings = {
     transitionEasing: "cubic-bezier(0.4, 0, 0.2, 1)",
     
     // Accent & State Colors
-    accentHover: "",
-    accentActive: "",
     successColor: "#10b981",
     warningColor: "#f59e0b",
     errorColor: "#ff4444",
@@ -75,11 +72,7 @@ export const defaultSettings = {
     
     // ComfyUI Integration Settings
     comfyThemeSync: true,
-    comfyMenuBg: "",
-    comfyInputBg: "",
-    comfyFgColor: "",
-    comfyBorderColor: "",
-    
+
     // Advanced Visual Settings
     saturationModifier: "0",
     brightnessModifier: "0",

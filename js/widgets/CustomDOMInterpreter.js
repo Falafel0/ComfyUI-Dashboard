@@ -523,12 +523,17 @@ export class CustomDOMInterpreter extends WidgetInterpreter {
  */
 function fixScrollWheel(root) {
     if (!root) return;
-    const found = root.querySelectorAll("textarea, input[type='number']");
-    console.log("[scroll] fixScrollWheel scanning", root.tagName, root.className?.slice(0,30), "found:", found.length);
-    found.forEach(el => {
+    // Собрать: сам root + все потомки — кто из них textarea/input[number]
+    const targets = [];
+    if (root.tagName === "TEXTAREA" || (root.tagName === "INPUT" && root.type === "number")) {
+        targets.push(root);
+    }
+    root.querySelectorAll("textarea, input[type='number']").forEach(el => targets.push(el));
+    console.log("[scroll] fixScrollWheel scanning", root.tagName, "found:", targets.length);
+    targets.forEach(el => {
         if (el._scrollFixed) return;
         el._scrollFixed = true;
-        console.log("[scroll] fixScrollWheel adding to", el.tagName, el.type || '', el.className?.slice(0,30));
+        console.log("[scroll] fixScrollWheel adding to", el.tagName, el.type || '');
         el.addEventListener("wheel", function(e) {
             if (el.tagName === "TEXTAREA") {
                 const st = el.scrollTop, sh = el.scrollHeight, ch = el.clientHeight;
